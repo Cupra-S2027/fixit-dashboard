@@ -17,8 +17,8 @@
 <body>
 <div class="box">
     <h2 style="text-align:center;color:#5B61FF">FixiT Login</h2>
-    <input type="text" id="user" placeholder="Benutzername" value="admin">
-    <input type="password" id="pass" placeholder="Passwort" value="fixit2026">
+    <input type="text" id="user" placeholder="Benutzername" >
+    <input type="password" id="pass" placeholder="Passwort" >
     <button onclick="doLogin()">Anmelden</button>
     <div id="msg"></div>
 </div>
@@ -40,7 +40,8 @@ function doLogin() {
             document.getElementById('msg').textContent = 'Login OK! Token: ' + data.token.substring(0, 20) + '...';
             sessionStorage.setItem('fixitToken', data.token);
             sessionStorage.setItem('fixitUser', JSON.stringify(data.user));
-            setTimeout(function() { window.location.href = '/dashboard'; }, 1000);
+            // Seite neu laden um das Dashboard zu zeigen
+            setTimeout(function() { window.location.reload(); }, 500);
         } else {
             document.getElementById('msg').style.color = 'red';
             document.getElementById('msg').textContent = 'Fehler: ' + data.error;
