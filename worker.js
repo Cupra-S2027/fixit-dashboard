@@ -45,7 +45,7 @@ export default {
     }
 
     // Serve HTML from GitHub
-    if (path === '/' || path === '') {
+    if (path === '/' || path === '' || path === '/dashboard') {
       const resp = await fetch(GITHUB_HTML_URL);
       const html = await resp.text();
       return new Response(html, {
