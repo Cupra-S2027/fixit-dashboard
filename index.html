@@ -988,6 +988,7 @@
     <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls" onchange="handleFileImport(event)">
 
     <script>
+(async function() {
         // === API KONFIGURATION ===
         // Cloudflare Worker URL - passt sich automatisch an
         const API_BASE = window.location.origin;
@@ -1860,6 +1861,7 @@
         function toggleProcess(element) {
             element.classList.toggle('active');
         }
+})();
     </script>
 </body>
 </html>
