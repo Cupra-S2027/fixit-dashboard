@@ -62,14 +62,41 @@ export default {
       return new Response(null, { headers: CORS_HEADERS });
     }
 
-    // Serve the main HTML page
+    // Serve the main HTML page - embedded directly in worker
     if (path === '/' || path === '') {
-      // Read the HTML from KV (you'll upload it there)
       const htmlContent = await env.KV.get('index_html');
       if (htmlContent) {
         return html(htmlContent);
       }
-      return html('<h1>Bitte index.html hochladen</h1>');
+      // Fallback wenn noch nicht hochgeladen
+      return html(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Setup</title>
+<style>body{font-family:sans-serif;max-width:600px;margin:100px auto;padding:2rem;background:#f5f5f5;}
+.box{background:white;padding:2rem;border-radius:12px;box-shadow:0 2px 20px rgba(0,0,0,0.1);}
+code{background:#f0f0f0;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.9rem;}
+textarea{width:100%;height:300px;margin:1rem 0;font-family:monospace;font-size:0.8rem;}
+button{background:#5B61FF;color:white;border:none;padding:0.8rem 2rem;border-radius:8px;cursor:pointer;font-size:1rem;}
+</style></head><body><div class="box">
+<h2>🚀 Fast fertig!</h2>
+<p>Füge den Inhalt deiner <code>index.html</code> hier ein und klicke Upload:</p>
+<textarea id="html" placeholder="Inhalt der index.html hier einfügen..."></textarea>
+<button onclick="upload()">⬆️ HTML hochladen</button>
+<p id="status"></p>
+</div>
+<script>
+async function upload() {
+  const html = document.getElementById('html').value;
+  if (!html.trim()) { alert('Bitte HTML einfügen!'); return; }
+  document.getElementById('status').textContent = 'Lade hoch...';
+  // Need to login first
+  const loginRes = await fetch('/api/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'admin',password:'fixit2026'})});
+  const loginData = await loginRes.json();
+  if (!loginData.token) { document.getElementById('status').textContent = 'Login fehlgeschlagen'; return; }
+  const res = await fetch('/api/upload-html', {method:'POST',headers:{'Content-Type':'text/plain','Authorization':'Bearer '+loginData.token},body:html});
+  const data = await res.json();
+  if (data.success) { document.getElementById('status').textContent = '✅ Fertig! Seite wird neu geladen...'; setTimeout(()=>location.reload(),1500); }
+  else { document.getElementById('status').textContent = 'Fehler: ' + JSON.stringify(data); }
+}
+</script></body></html>`);
     }
 
     // === API ROUTES ===
