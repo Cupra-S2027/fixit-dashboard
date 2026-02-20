@@ -1712,7 +1712,7 @@
             }
         }
 
-        function handleSingleCustomerImport(event, customerId) {
+        async function handleSingleCustomerImport(event, customerId) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -1778,7 +1778,7 @@
             document.getElementById('fileInput').click();
         }
 
-        function handleFileImport(event) {
+        async function handleFileImport(event) {
             const file = event.target.files[0];
             if (!file) return;
 
