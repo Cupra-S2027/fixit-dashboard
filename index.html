@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FixiT Service Center - Dashboard</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="icon" href="/favicon.ico">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * {
@@ -153,6 +152,7 @@
         .btn-primary {
             background: var(--primary);
             color: white;
+            width: 100%;
         }
 
         .btn-primary:hover {
@@ -711,6 +711,88 @@
             gap: 0.5rem;
         }
 
+        /* Accordion für Spezielle Prozesse */
+        .process-accordion {
+            margin-top: 1rem;
+        }
+
+        .process-item {
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+
+        .process-header {
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .process-header:hover {
+            background: rgba(91, 97, 255, 0.05);
+        }
+
+        .process-title {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .process-icon {
+            transition: transform 0.2s;
+            color: var(--text-muted);
+        }
+
+        .process-item.active .process-icon {
+            transform: rotate(180deg);
+        }
+
+        .process-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .process-item.active .process-content {
+            max-height: 500px;
+        }
+
+        .process-body {
+            padding: 0 1rem 1rem 1rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Listen-Stil für Wichtige Hinweise */
+        .hinweise-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .hinweise-list li {
+            padding: 0.75rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hinweise-list li:last-child {
+            border-bottom: none;
+        }
+
+        .hinweise-list li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
         /* Export/Import Buttons in Modal */
         .modal-actions {
             display: flex;
@@ -768,7 +850,7 @@
                     <label class="form-label">Passwort</label>
                     <input type="password" id="password" class="form-input" required>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width:100%;">Anmelden</button>
+                <button type="submit" class="btn btn-primary">Anmelden</button>
             </form>
         </div>
     </div>
@@ -799,7 +881,7 @@
                         <button class="btn btn-success" onclick="addNewCustomer()">
                             ➕ Neuer Kunde
                         </button>
-                        <div class="export-dropdown" style="position: relative;">
+                        <div style="position: relative;">
                             <button class="btn btn-primary" onclick="toggleExportMenu()">
                                 📊 Export
                             </button>
@@ -905,7 +987,7 @@
 
     <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls" onchange="handleFileImport(event)">
 
-    <script>
+        <script>
         // === API ===
         var API_BASE = window.location.origin;
         var AUTH_TOKEN = sessionStorage.getItem('fixitToken') || null;
@@ -929,4 +1011,662 @@
             return fetch(API_BASE + path, opts).then(function(res) {
                 if (res.status === 401) {
                     AUTH_TOKEN = null;
-                    sessionStorage.removeItem
+                    sessionStorage.removeItem('fixitToken');
+                    sessionStorage.removeItem('fixitUser');
+                    currentUser = null;
+                    document.getElementById('dashboard').classList.remove('active');
+                    document.getElementById('loginScreen').classList.remove('hidden');
+                    showToast('Sitzung abgelaufen', 'error');
+                    throw new Error('Unauthorized');
+                }
+                return res.json();
+            });
+        }
+
+        // === INIT ===
+        window.addEventListener('DOMContentLoaded', function() {
+            var savedUser = sessionStorage.getItem('fixitUser');
+            if (savedUser && AUTH_TOKEN) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            }
+
+            document.querySelectorAll('.filter-tab').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-tab').forEach(function(t) { t.classList.remove('active'); });
+                    tab.classList.add('active');
+                    currentFilter = tab.dataset.filter;
+                    renderCustomers();
+                });
+            });
+
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                currentSearch = e.target.value.toLowerCase();
+                renderCustomers();
+            });
+
+            document.getElementById('customerModal').addEventListener('click', function(e) {
+                if (e.target.id === 'customerModal') closeModal();
+            });
+
+            document.getElementById('userManagementModal').addEventListener('click', function(e) {
+                if (e.target.id === 'userManagementModal') closeUserManagement();
+            });
+        });
+
+        // === LOGIN ===
+        function handleLogin(event) {
+            event.preventDefault();
+            var username = document.getElementById('username').value;
+            var password = document.getElementById('password').value;
+            apiCall('POST', '/api/login', { username: username, password: password })
+            .then(function(result) {
+                if (result.success) {
+                    AUTH_TOKEN = result.token;
+                    currentUser = result.user;
+                    sessionStorage.setItem('fixitToken', AUTH_TOKEN);
+                    sessionStorage.setItem('fixitUser', JSON.stringify(currentUser));
+                    showDashboard();
+                    showToast('Erfolgreich angemeldet!', 'success');
+                } else {
+                    showToast(result.error || 'Ungültige Anmeldedaten', 'error');
+                }
+            }).catch(function(e) {
+                if (e.message !== 'Unauthorized') showToast('Verbindungsfehler', 'error');
+            });
+        }
+
+        function handleLogout() {
+            if (confirm('Möchtest du dich wirklich abmelden?')) {
+                AUTH_TOKEN = null;
+                currentUser = null;
+                sessionStorage.removeItem('fixitToken');
+                sessionStorage.removeItem('fixitUser');
+                document.getElementById('dashboard').classList.remove('active');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('active');
+            document.getElementById('currentUser').textContent = currentUser.name;
+            document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+            if (currentUser.role === 'admin') {
+                document.getElementById('userManagementBtn').style.display = 'block';
+            }
+            apiCall('GET', '/api/customers').then(function(data) {
+                customers = data;
+                renderCustomers();
+                updateStats();
+            }).catch(function() { customers = []; renderCustomers(); });
+        }
+
+        // === USER MANAGEMENT ===
+        function openUserManagement() {
+            renderUsersList();
+            document.getElementById('userManagementModal').classList.add('active');
+        }
+
+        function closeUserManagement() {
+            document.getElementById('userManagementModal').classList.remove('active');
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newName').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newRole').value = 'user';
+        }
+
+        function renderUsersList() {
+            var usersList = document.getElementById('usersList');
+            usersList.innerHTML = '<p style="color:var(--text-muted)">Lade...</p>';
+            apiCall('GET', '/api/users').then(function(data) {
+                USERS = data;
+                usersList.innerHTML = '';
+                Object.entries(USERS).forEach(function(entry) {
+                    var username = entry[0];
+                    var user = entry[1];
+                    var userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+
+                    var info = document.createElement('div');
+                    info.className = 'user-item-info';
+                    info.innerHTML = '<div class="user-item-name">' + user.name + ' (' + username + ')</div>' +
+                        '<div class="user-item-role">Rolle: ' + user.role + '</div>';
+
+                    var actions = document.createElement('div');
+                    actions.className = 'user-item-actions';
+
+                    var pwBtn = document.createElement('button');
+                    pwBtn.className = 'btn btn-warning';
+                    pwBtn.style.padding = '0.5rem 1rem';
+                    pwBtn.textContent = '🔑 Passwort';
+                    pwBtn.onclick = function() { changePassword(username); };
+                    actions.appendChild(pwBtn);
+
+                    if (username !== 'admin') {
+                        var delBtn = document.createElement('button');
+                        delBtn.className = 'btn btn-danger';
+                        delBtn.style.padding = '0.5rem 1rem';
+                        delBtn.textContent = '🗑️';
+                        delBtn.onclick = function() { deleteUser(username); };
+                        actions.appendChild(delBtn);
+                    }
+
+                    userItem.appendChild(info);
+                    userItem.appendChild(actions);
+                    usersList.appendChild(userItem);
+                });
+            }).catch(function() {});
+        }
+
+        function addNewUser() {
+            var username = document.getElementById('newUsername').value.trim();
+            var name = document.getElementById('newName').value.trim();
+            var password = document.getElementById('newPassword').value;
+            var role = document.getElementById('newRole').value;
+            if (!username || !name || !password) { showToast('Bitte alle Felder ausfüllen', 'error'); return; }
+            apiCall('POST', '/api/users', { username: username, password: password, name: name, role: role })
+            .then(function(result) {
+                if (result.error) { showToast(result.error, 'error'); return; }
+                renderUsersList();
+                showToast('Benutzer ' + name + ' hinzugefügt!', 'success');
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newName').value = '';
+                document.getElementById('newPassword').value = '';
+            }).catch(function() {});
+        }
+
+        function changePassword(username) {
+            var newPassword = prompt('Neues Passwort für ' + (USERS[username] ? USERS[username].name : username) + ':');
+            if (newPassword && newPassword.trim()) {
+                apiCall('PUT', '/api/users/' + username + '/password', { password: newPassword.trim() })
+                .then(function() { showToast('Passwort geändert', 'success'); })
+                .catch(function() {});
+            }
+        }
+
+        function deleteUser(username) {
+            if (confirm('Benutzer ' + (USERS[username] ? USERS[username].name : username) + ' wirklich löschen?')) {
+                apiCall('DELETE', '/api/users/' + username)
+                .then(function() { renderUsersList(); showToast('Benutzer gelöscht', 'success'); })
+                .catch(function() {});
+            }
+        }
+
+        // === CUSTOMERS ===
+        function renderCustomers() {
+            var grid = document.getElementById('customersGrid');
+            var noResults = document.getElementById('noResults');
+            var filtered = customers;
+            if (currentFilter !== 'all') filtered = filtered.filter(function(c) { return c.status === currentFilter; });
+            if (currentSearch) filtered = filtered.filter(function(c) {
+                return c.name.toLowerCase().includes(currentSearch) ||
+                    (c.contact || '').toLowerCase().includes(currentSearch) ||
+                    (c.phone || '').includes(currentSearch);
+            });
+            if (filtered.length === 0) {
+                grid.style.display = 'none';
+                noResults.style.display = 'block';
+                updateStats();
+                return;
+            }
+            grid.style.display = 'grid';
+            noResults.style.display = 'none';
+            grid.innerHTML = filtered.map(function(c) {
+                return '<div class="customer-card" onclick="openModal(' + c.id + ')">' +
+                    '<div class="customer-header">' +
+                    '<div class="customer-name">' + c.name + '</div>' +
+                    '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>' +
+                    '</div>' +
+                    '<div class="customer-info">' +
+                    '<div class="info-row">📅 Go-Live: ' + c.goLive + '</div>' +
+                    '<div class="info-row">👤 ' + (c.contact || 'Kein Ansprechpartner') + '</div>' +
+                    '<div class="info-row">📞 ' + (c.phone || 'Keine Telefonnummer') + '</div>' +
+                    '</div></div>';
+            }).join('');
+            updateStats();
+        }
+
+        function getStatusText(status) {
+            var texts = { live: 'LIVE', onboarding: 'Onboarding', pending: 'Coming Soon' };
+            return texts[status] || status;
+        }
+
+        function updateStats() {
+            document.getElementById('liveCount').textContent = customers.filter(function(c) { return c.status === 'live'; }).length;
+            document.getElementById('onboardingCount').textContent = customers.filter(function(c) { return c.status === 'onboarding'; }).length;
+            document.getElementById('pendingCount').textContent = customers.filter(function(c) { return c.status === 'pending'; }).length;
+        }
+
+        function saveCustomers() { /* handled by API */ }
+
+        // === MODAL ===
+        function openModal(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            document.getElementById('modalTitle').textContent = customer.name;
+            renderModalContent(customer, false);
+            document.getElementById('customerModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('customerModal').classList.remove('active');
+        }
+
+        function renderModalContent(customer, isEditMode) {
+            var isAdmin = currentUser.role === 'admin';
+            var mb = document.getElementById('modalBody');
+            mb.innerHTML = '';
+
+            // Export/Import buttons (view mode only)
+            if (!isEditMode) {
+                var actDiv = document.createElement('div');
+                actDiv.className = 'modal-actions';
+                var expBtn = document.createElement('button');
+                expBtn.className = 'btn btn-primary';
+                expBtn.textContent = '\u{1F4CA} Exportieren';
+                expBtn.onclick = function() { exportSingleCustomer(customer.id); };
+                var impBtn = document.createElement('button');
+                impBtn.className = 'btn btn-secondary';
+                impBtn.textContent = '\u{1F4E5} Aktualisieren';
+                impBtn.onclick = function() { importSingleCustomer(customer.id); };
+                actDiv.appendChild(expBtn);
+                actDiv.appendChild(impBtn);
+                mb.appendChild(actDiv);
+            }
+
+            function makeField(label, value, editId, isEdit, adminOnly) {
+                var div = document.createElement('div');
+                div.className = 'deck-item' + (isEdit && (!adminOnly || isAdmin) ? ' editable' : '');
+                var lbl = document.createElement('div');
+                lbl.className = 'deck-item-label';
+                lbl.textContent = label;
+                div.appendChild(lbl);
+                if (isEdit && (!adminOnly || isAdmin)) {
+                    var inp = document.createElement('input');
+                    inp.type = 'text';
+                    inp.id = editId;
+                    inp.value = value || '';
+                    div.appendChild(inp);
+                } else {
+                    var val = document.createElement('div');
+                    val.className = 'deck-item-value';
+                    val.textContent = value || 'Nicht angegeben';
+                    div.appendChild(val);
+                }
+                return div;
+            }
+
+            function makeTextarea(label, value, editId, isEdit) {
+                var wrap = document.createElement('div');
+                wrap.style.marginBottom = '1rem';
+                var lbl = document.createElement('div');
+                lbl.className = 'deck-item-label';
+                lbl.textContent = label;
+                wrap.appendChild(lbl);
+                if (isEdit) {
+                    var ta = document.createElement('textarea');
+                    ta.id = editId;
+                    ta.textContent = value || '';
+                    wrap.appendChild(ta);
+                } else {
+                    var val = document.createElement('div');
+                    val.className = 'deck-item-value';
+                    val.textContent = value || 'Nicht angegeben';
+                    wrap.appendChild(val);
+                }
+                return wrap;
+            }
+
+            // Section: Allgemeine Informationen
+            var sec1 = document.createElement('div');
+            sec1.className = 'deck-section';
+            sec1.innerHTML = '<div class="deck-title">Allgemeine Informationen</div>';
+            var grid1 = document.createElement('div');
+            grid1.className = 'deck-grid';
+
+            // Status field
+            var statusDiv = document.createElement('div');
+            statusDiv.className = 'deck-item' + (isEditMode && isAdmin ? ' editable' : '');
+            statusDiv.innerHTML = '<div class="deck-item-label">Status</div>';
+            if (isEditMode && isAdmin) {
+                var sel = document.createElement('select');
+                sel.id = 'edit-status';
+                sel.className = 'deck-item-value';
+                ['live','onboarding','pending'].forEach(function(s) {
+                    var opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = getStatusText(s);
+                    if (customer.status === s) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+                statusDiv.appendChild(sel);
+            } else {
+                var sb = document.createElement('div');
+                sb.className = 'deck-item-value';
+                sb.innerHTML = '<span class="status-badge ' + customer.status + '">' + getStatusText(customer.status) + '</span>';
+                statusDiv.appendChild(sb);
+            }
+            grid1.appendChild(statusDiv);
+            grid1.appendChild(makeField('Go-Live Datum', customer.goLive, 'edit-goLive', isEditMode, true));
+            grid1.appendChild(makeField('Ansprechpartner', customer.contact, 'edit-contact', isEditMode, false));
+            grid1.appendChild(makeField('Telefon', customer.phone, 'edit-phone', isEditMode, false));
+            sec1.appendChild(grid1);
+            mb.appendChild(sec1);
+
+            // Section: Verwaltungsdetails
+            var sec2 = document.createElement('div');
+            sec2.className = 'deck-section';
+            sec2.innerHTML = '<div class="deck-title">Verwaltungsdetails</div>';
+            var dc = document.createElement('div');
+            dc.className = 'deck-content' + (isEditMode ? ' editable' : '');
+            dc.appendChild(makeTextarea('Verwaltungsart', customer.deck.verwaltungsart, 'edit-verwaltungsart', isEditMode));
+            dc.appendChild(makeTextarea('Wording & Besonderheiten', customer.deck.wording, 'edit-wording', isEditMode));
+            sec2.appendChild(dc);
+            mb.appendChild(sec2);
+
+            // Section: Hinweise
+            var sec3 = document.createElement('div');
+            sec3.className = 'deck-section';
+            sec3.innerHTML = '<div class="deck-title">Wichtige Hinweise</div>';
+            var dc3 = document.createElement('div');
+            dc3.className = 'deck-content' + (isEditMode ? ' editable' : '');
+            if (isEditMode) {
+                var ta3 = document.createElement('textarea');
+                ta3.id = 'edit-hinweise';
+                ta3.placeholder = 'Jede Zeile wird als Stichpunkt angezeigt';
+                ta3.textContent = customer.deck.hinweise || '';
+                dc3.appendChild(ta3);
+            } else {
+                if (customer.deck.hinweise) {
+                    var ul = document.createElement('ul');
+                    ul.className = 'hinweise-list';
+                    customer.deck.hinweise.split('\n').filter(function(h){return h.trim();}).forEach(function(h) {
+                        var li = document.createElement('li');
+                        li.textContent = h.trim();
+                        ul.appendChild(li);
+                    });
+                    dc3.appendChild(ul);
+                } else {
+                    dc3.innerHTML = '<p style="color:var(--text-muted)">Keine Hinweise</p>';
+                }
+            }
+            sec3.appendChild(dc3);
+            mb.appendChild(sec3);
+
+            // Section: Prozesse & Notfall
+            var sec4 = document.createElement('div');
+            sec4.className = 'deck-section';
+            sec4.innerHTML = '<div class="deck-title">Prozesse & Notfallkontakt</div>';
+            var grid4 = document.createElement('div');
+            grid4.className = 'deck-grid';
+            grid4.appendChild(makeField('Notfall-Kontakt', customer.deck.notfall, 'edit-notfall', isEditMode, false));
+            var updDiv = document.createElement('div');
+            updDiv.className = 'deck-item';
+            updDiv.innerHTML = '<div class="deck-item-label">Letzte Aktualisierung</div><div class="deck-item-value">' + customer.deck.updated + '</div>';
+            grid4.appendChild(updDiv);
+            sec4.appendChild(grid4);
+            var notesWrap = document.createElement('div');
+            notesWrap.style.marginTop = '1rem';
+            notesWrap.appendChild(makeTextarea('Notizen', customer.notes, 'edit-notes', isEditMode));
+            sec4.appendChild(notesWrap);
+            mb.appendChild(sec4);
+
+            // Action buttons
+            var actDiv2 = document.createElement('div');
+            actDiv2.className = 'modal-actions';
+            if (isEditMode) {
+                var saveBtn = document.createElement('button');
+                saveBtn.className = 'btn btn-success';
+                saveBtn.textContent = '\u{1F4BE} Speichern';
+                saveBtn.onclick = function() { saveEdit(customer.id); };
+                var cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn btn-secondary';
+                cancelBtn.textContent = 'Abbrechen';
+                cancelBtn.onclick = function() { cancelEdit(customer.id); };
+                actDiv2.appendChild(saveBtn);
+                actDiv2.appendChild(cancelBtn);
+                if (isAdmin) {
+                    var delBtn2 = document.createElement('button');
+                    delBtn2.className = 'btn btn-danger';
+                    delBtn2.textContent = '\u{1F5D1}\uFE0F Löschen';
+                    delBtn2.onclick = function() { deleteCustomer(customer.id); };
+                    actDiv2.appendChild(delBtn2);
+                }
+            } else {
+                var editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-primary';
+                editBtn.textContent = '\u270F\uFE0F Bearbeiten';
+                editBtn.onclick = function() { editCustomer(customer.id); };
+                actDiv2.appendChild(editBtn);
+                if (isAdmin) {
+                    var delBtn3 = document.createElement('button');
+                    delBtn3.className = 'btn btn-danger';
+                    delBtn3.textContent = '\u{1F5D1}\uFE0F Löschen';
+                    delBtn3.onclick = function() { deleteCustomer(customer.id); };
+                    actDiv2.appendChild(delBtn3);
+                }
+            }
+            mb.appendChild(actDiv2);
+        }
+
+        function editCustomer(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            renderModalContent(customer, true);
+            document.getElementById('modalTitle').textContent = customer.name + ' bearbeiten';
+        }
+
+        function saveEdit(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            var isAdmin = currentUser.role === 'admin';
+            if (isAdmin) {
+                customer.status = document.getElementById('edit-status').value;
+                customer.goLive = document.getElementById('edit-goLive').value;
+            }
+            customer.contact = document.getElementById('edit-contact').value;
+            customer.phone = document.getElementById('edit-phone').value;
+            customer.notes = document.getElementById('edit-notes') ? document.getElementById('edit-notes').value : customer.notes;
+            customer.deck.verwaltungsart = document.getElementById('edit-verwaltungsart').value;
+            customer.deck.wording = document.getElementById('edit-wording').value;
+            customer.deck.hinweise = document.getElementById('edit-hinweise').value;
+            customer.deck.notfall = document.getElementById('edit-notfall').value;
+            customer.deck.updated = new Date().toLocaleDateString('de-DE');
+            apiCall('PUT', '/api/customers/' + customerId, customer)
+            .then(function() {
+                return apiCall('GET', '/api/customers');
+            }).then(function(data) {
+                customers = data;
+                renderCustomers();
+                closeModal();
+                showToast('Kunde gespeichert!', 'success');
+            }).catch(function() { showToast('Fehler beim Speichern', 'error'); });
+        }
+
+        function cancelEdit(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            renderModalContent(customer, false);
+            document.getElementById('modalTitle').textContent = customer.name;
+        }
+
+        function deleteCustomer(customerId) {
+            if (confirm('Kunden wirklich löschen?')) {
+                apiCall('DELETE', '/api/customers/' + customerId)
+                .then(function() { return apiCall('GET', '/api/customers'); })
+                .then(function(data) {
+                    customers = data;
+                    renderCustomers();
+                    closeModal();
+                    showToast('Kunde gelöscht', 'success');
+                }).catch(function() { showToast('Fehler beim Löschen', 'error'); });
+            }
+        }
+
+        function addNewCustomer() {
+            var newCustomer = {
+                name: 'Neuer Kunde',
+                status: 'pending',
+                goLive: new Date().toLocaleDateString('de-DE'),
+                dataReady: false,
+                verwaltungAktiv: 'Geplant',
+                buchhaltungAktiv: 'Geplant',
+                contact: '', phone: '', notes: '',
+                deck: { verwaltungsart: '', wording: '', hinweise: '', notfall: '', prozesse: '', updated: new Date().toLocaleDateString('de-DE') }
+            };
+            apiCall('POST', '/api/customers', newCustomer)
+            .then(function(created) { return apiCall('GET', '/api/customers').then(function(data) { customers = data; renderCustomers(); editCustomer(created.id); showToast('Neuer Kunde erstellt!', 'info'); }); })
+            .catch(function() { showToast('Fehler beim Erstellen', 'error'); });
+        }
+
+        // === EXPORT ===
+        function toggleExportMenu() {
+            document.getElementById('exportMenu').classList.toggle('active');
+        }
+
+        function closeExportOnOutside(e) {
+            if (!e.target.closest('.export-dropdown')) {
+                document.getElementById('exportMenu').classList.remove('active');
+            }
+        }
+
+        function exportSingleCustomer(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            var data = [{ 'Kundenname': customer.name, 'Status': getStatusText(customer.status), 'Go-Live Datum': customer.goLive, 'Ansprechpartner': customer.contact, 'Telefon': customer.phone, 'Notizen': customer.notes }];
+            var ws = XLSX.utils.json_to_sheet(data);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Kunde');
+            XLSX.writeFile(wb, customer.name + '_Export.xlsx');
+            document.getElementById('exportMenu').classList.remove('active');
+            showToast('Export erfolgreich!', 'success');
+        }
+
+        function exportBlankTemplate() {
+            var data = [{ 'Kundenname': '', 'Status': '', 'Go-Live Datum': '', 'Ansprechpartner': '', 'Telefon': '', 'Notizen': '' }];
+            var ws = XLSX.utils.json_to_sheet(data);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Vorlage');
+            XLSX.writeFile(wb, 'FixiT_Blanko_Vorlage.xlsx');
+            document.getElementById('exportMenu').classList.remove('active');
+        }
+
+        function exportToExcel() {
+            if (customers.length === 0) { showToast('Keine Kunden vorhanden', 'error'); return; }
+            var data = customers.map(function(c) { return { 'Kundenname': c.name, 'Status': getStatusText(c.status), 'Go-Live Datum': c.goLive, 'Ansprechpartner': c.contact, 'Telefon': c.phone, 'Notizen': c.notes }; });
+            var ws = XLSX.utils.json_to_sheet(data);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
+            XLSX.writeFile(wb, 'FixiT_Export_' + new Date().toLocaleDateString('de-DE').replace(/\./g,'-') + '.xlsx');
+            document.getElementById('exportMenu').classList.remove('active');
+            showToast('Excel-Export erfolgreich!', 'success');
+        }
+
+        function exportToJSON() {
+            var dataStr = JSON.stringify({ customers: customers, users: USERS }, null, 2);
+            var blob = new Blob([dataStr], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url; a.download = 'FixiT_Backup.json'; a.click();
+            URL.revokeObjectURL(url);
+            document.getElementById('exportMenu').classList.remove('active');
+            showToast('Backup erstellt!', 'success');
+        }
+
+        function importData() { document.getElementById('fileInput').click(); }
+
+        function importSingleCustomer(customerId) {
+            if (confirm('Kunden mit Excel-Daten überschreiben?')) {
+                var input = document.createElement('input');
+                input.type = 'file'; input.accept = '.xlsx,.xls';
+                input.onchange = function(e) { handleSingleCustomerImport(e, customerId); };
+                input.click();
+            }
+        }
+
+        function handleSingleCustomerImport(event, customerId) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, { type: 'array' });
+                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                if (jsonData.length === 0) { showToast('Datei ist leer', 'error'); return; }
+                var row = jsonData[0];
+                var customer = customers.find(function(c) { return c.id === customerId; });
+                if (!customer) return;
+                if (row['Kundenname']) customer.name = row['Kundenname'];
+                if (row['Ansprechpartner']) customer.contact = row['Ansprechpartner'];
+                if (row['Telefon']) customer.phone = row['Telefon'];
+                customer.deck.updated = new Date().toLocaleDateString('de-DE');
+                apiCall('PUT', '/api/customers/' + customerId, customer)
+                .then(function() { return apiCall('GET', '/api/customers'); })
+                .then(function(data) { customers = data; renderCustomers(); closeModal(); showToast('Kunde aktualisiert!', 'success'); })
+                .catch(function() { showToast('Fehler beim Speichern', 'error'); });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function handleFileImport(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, { type: 'array' });
+                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                var maxId = customers.length > 0 ? Math.max.apply(null, customers.map(function(c){return c.id;})) : 0;
+                var newCustomers = [];
+                jsonData.forEach(function(row, index) {
+                    if (row['Kundenname'] && row['Kundenname'].trim()) {
+                        newCustomers.push({
+                            name: row['Kundenname'],
+                            status: row['Status'] === 'LIVE' ? 'live' : row['Status'] === 'Onboarding' ? 'onboarding' : 'pending',
+                            goLive: row['Go-Live Datum'] || new Date().toLocaleDateString('de-DE'),
+                            dataReady: row['Data Ready'] === 'Ja',
+                            verwaltungAktiv: row['Verwaltung aktiviert'] || 'Geplant',
+                            buchhaltungAktiv: row['Buchhaltung aktiviert'] || 'Geplant',
+                            contact: row['Ansprechpartner'] || '',
+                            phone: row['Telefon'] || '',
+                            notes: row['Notizen'] || '',
+                            deck: { verwaltungsart: row['Verwaltungsart']||'', wording: row['Wording & Besonderheiten']||'', hinweise: row['Wichtige Hinweise']||'', notfall: row['Notfall-Kontakt']||'', prozesse: row['Spezial-Prozesse']||'', updated: new Date().toLocaleDateString('de-DE') }
+                        });
+                    }
+                });
+                var promises = newCustomers.map(function(nc) { return apiCall('POST', '/api/customers', nc); });
+                Promise.all(promises).then(function() {
+                    return apiCall('GET', '/api/customers');
+                }).then(function(data) {
+                    customers = data;
+                    renderCustomers();
+                    showToast(newCustomers.length + ' Kunden importiert!', 'success');
+                }).catch(function() { showToast('Fehler beim Import', 'error'); });
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        // === TOAST ===
+        function showToast(message, type) {
+            type = type || 'info';
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<div style="flex:1"><div style="font-weight:600;margin-bottom:0.25rem">' +
+                (type === 'success' ? '✓ Erfolg' : type === 'error' ? '✗ Fehler' : 'ℹ Info') +
+                '</div><div style="font-size:0.875rem;color:var(--text-muted)">' + message + '</div></div>';
+            document.body.appendChild(toast);
+            setTimeout(function() {
+                toast.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3000);
+        }
+
+        function toggleProcess(element) { element.classList.toggle('active'); }
+    </script>
+</body>
+</html>
