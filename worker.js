@@ -26,9 +26,9 @@ function generateToken(username) {
 async function getUsers(KV) {
   const data = await KV.get('users');
   if (!data) {
-    const defaultUsers = { admin: { password: 'fixit2026', role: 'admin', name: 'Admin' } };
-    await KV.put('users', JSON.stringify(defaultUsers));
-    return defaultUsers;
+    const def = { admin: { password: 'fixit2026', role: 'admin', name: 'Admin' } };
+    await KV.put('users', JSON.stringify(def));
+    return def;
   }
   return JSON.parse(data);
 }
@@ -891,7 +891,7 @@ const INDEX_HTML = `<!DOCTYPE html>
                     <input type="password" id="password" class="form-input" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Anmelden</button>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -1027,7 +1027,8 @@ const INDEX_HTML = `<!DOCTYPE html>
 
     <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls" onchange="handleFileImport(event)">
 
-    <script type="module">
+    <script>
+(async function() {
         // === API KONFIGURATION ===
         // Cloudflare Worker URL - passt sich automatisch an
         const API_BASE = window.location.origin;
@@ -1900,6 +1901,7 @@ const INDEX_HTML = `<!DOCTYPE html>
         function toggleProcess(element) {
             element.classList.toggle('active');
         }
+})();
     </script>
 </body>
 </html>
@@ -1950,29 +1952,29 @@ export default {
 
     if (path === '/api/customers' && request.method === 'POST') {
       const customers = await getCustomers(env.KV);
-      const newCustomer = await request.json();
+      const nc = await request.json();
       const maxId = customers.length > 0 ? Math.max(...customers.map(c => c.id)) : 0;
-      newCustomer.id = maxId + 1;
-      customers.push(newCustomer);
+      nc.id = maxId + 1;
+      customers.push(nc);
       await env.KV.put('customers', JSON.stringify(customers));
-      return json(newCustomer);
+      return json(nc);
     }
 
-    const customerMatch = path.match(/^\/api\/customers\/(\d+)$/);
-    if (customerMatch && request.method === 'PUT') {
-      const id = parseInt(customerMatch[1]);
+    const cm = path.match(/^\/api\/customers\/(\d+)$/);
+    if (cm && request.method === 'PUT') {
+      const id = parseInt(cm[1]);
       const customers = await getCustomers(env.KV);
       const idx = customers.findIndex(c => c.id === id);
       if (idx === -1) return json({ error: 'Nicht gefunden' }, 404);
-      const updated = await request.json();
-      customers[idx] = { ...customers[idx], ...updated, id };
+      const upd = await request.json();
+      customers[idx] = { ...customers[idx], ...upd, id };
       await env.KV.put('customers', JSON.stringify(customers));
       return json(customers[idx]);
     }
 
-    if (customerMatch && request.method === 'DELETE') {
+    if (cm && request.method === 'DELETE') {
       let customers = await getCustomers(env.KV);
-      customers = customers.filter(c => c.id !== parseInt(customerMatch[1]));
+      customers = customers.filter(c => c.id !== parseInt(cm[1]));
       await env.KV.put('customers', JSON.stringify(customers));
       return json({ success: true });
     }
@@ -1980,24 +1982,24 @@ export default {
     if (path === '/api/users' && request.method === 'GET') {
       if (currentUser.role !== 'admin') return json({ error: 'Keine Berechtigung' }, 403);
       const users = await getUsers(env.KV);
-      const safeUsers = Object.fromEntries(Object.entries(users).map(([k, v]) => [k, { name: v.name, role: v.role }]));
-      return json(safeUsers);
+      const safe = Object.fromEntries(Object.entries(users).map(([k, v]) => [k, { name: v.name, role: v.role }]));
+      return json(safe);
     }
 
     if (path === '/api/users' && request.method === 'POST') {
       if (currentUser.role !== 'admin') return json({ error: 'Keine Berechtigung' }, 403);
-      const { username: newUsername, password, name, role } = await request.json();
+      const { username: nu, password, name, role } = await request.json();
       const users = await getUsers(env.KV);
-      if (users[newUsername]) return json({ error: 'Benutzername existiert bereits' }, 400);
-      users[newUsername] = { password, name, role };
+      if (users[nu]) return json({ error: 'Benutzername existiert bereits' }, 400);
+      users[nu] = { password, name, role };
       await env.KV.put('users', JSON.stringify(users));
       return json({ success: true });
     }
 
-    const userMatch = path.match(/^\/api\/users\/([^/]+)$/);
-    if (userMatch && request.method === 'DELETE') {
+    const um = path.match(/^\/api\/users\/([^/]+)$/);
+    if (um && request.method === 'DELETE') {
       if (currentUser.role !== 'admin') return json({ error: 'Keine Berechtigung' }, 403);
-      const target = decodeURIComponent(userMatch[1]);
+      const target = decodeURIComponent(um[1]);
       if (target === 'admin') return json({ error: 'Admin kann nicht gelöscht werden' }, 400);
       const users = await getUsers(env.KV);
       delete users[target];
@@ -2005,9 +2007,9 @@ export default {
       return json({ success: true });
     }
 
-    const pwMatch = path.match(/^\/api\/users\/([^/]+)\/password$/);
-    if (pwMatch && request.method === 'PUT') {
-      const target = decodeURIComponent(pwMatch[1]);
+    const pm = path.match(/^\/api\/users\/([^/]+)\/password$/);
+    if (pm && request.method === 'PUT') {
+      const target = decodeURIComponent(pm[1]);
       if (currentUser.role !== 'admin' && currentUser.username !== target) return json({ error: 'Keine Berechtigung' }, 403);
       const { password } = await request.json();
       const users = await getUsers(env.KV);
