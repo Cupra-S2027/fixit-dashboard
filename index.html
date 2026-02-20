@@ -2,56 +2,1521 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>FixiT Login Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FixiT Service Center - Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; display: flex; justify-content: center; 
-               align-items: center; height: 100vh; margin: 0; background: #5B61FF; }
-        .box { background: white; padding: 2rem; border-radius: 12px; width: 300px; }
-        input { width: 100%; padding: 0.75rem; margin: 0.5rem 0; border: 1px solid #ddd; 
-                border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-        button { width: 100%; padding: 0.75rem; background: #5B61FF; color: white; 
-                 border: none; border-radius: 6px; font-size: 1rem; cursor: pointer; }
-        #msg { margin-top: 1rem; text-align: center; font-weight: bold; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #5B61FF;
+            --blue: #0B72E7;
+            --success: #00C853;
+            --warning: #FF9800;
+            --pending: #9C27B0;
+            --danger: #F44336;
+            --bg: #F5F7FF;
+            --surface: #FFFFFF;
+            --surface-light: #EEF2FF;
+            --text: #0F172A;
+            --text-muted: #667085;
+            --border: #E6E8F0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            min-width: 300px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            animation: slideInRight 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--primary); }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Login Screen */
+        .login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--blue) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .login-screen.hidden {
+            display: none;
+        }
+
+        .login-box {
+            background: var(--surface);
+            padding: 3rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'JetBrains Mono', monospace;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+        }
+
+        .btn {
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #0052CC;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 102, 255, 0.3);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #00A844;
+        }
+
+        .btn-secondary {
+            background: var(--surface-light);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--surface);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #D32F2F;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #F57C00;
+        }
+
+        /* Dashboard Container */
+        .dashboard {
+            min-height: 100vh;
+            display: none;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        /* Header */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .fixclient-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            background: linear-gradient(135deg, var(--primary), var(--blue));
+            color: white;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(91, 97, 255, 0.2);
+        }
+
+        .fixclient-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(91, 97, 255, 0.3);
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            background: var(--surface-light);
+            border-radius: 8px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.875rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            flex: 1;
+            background: var(--surface);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .stat-card.live .stat-value { color: var(--success); }
+        .stat-card.onboarding .stat-value { color: var(--warning); }
+        .stat-card.pending .stat-value { color: var(--pending); }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.75rem 1.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .filter-tab:hover {
+            background: var(--surface-light);
+            color: var(--text);
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+
+        .search-bar {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-bar input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.875rem;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Customers Grid */
+        .customers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .customer-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .customer-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            border-color: var(--primary);
+        }
+
+        .customer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+
+        .customer-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .status-badge {
+            padding: 0.375rem 0.875rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.live {
+            background: rgba(0, 200, 83, 0.1);
+            color: var(--success);
+        }
+
+        .status-badge.onboarding {
+            background: rgba(255, 152, 0, 0.1);
+            color: var(--warning);
+        }
+
+        .status-badge.pending {
+            background: rgba(156, 39, 176, 0.1);
+            color: var(--pending);
+        }
+
+        .customer-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .info-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 14, 39, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            background: var(--surface-light);
+            color: var(--text);
+        }
+
+        .deck-section {
+            margin-bottom: 2rem;
+        }
+
+        .deck-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .deck-content {
+            background: var(--surface-light);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .deck-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .deck-item {
+            padding: 0.75rem;
+            background: var(--bg);
+            border-radius: 6px;
+        }
+
+        .deck-item-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .deck-item-value {
+            font-size: 0.95rem;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .deck-item.editable {
+            background: var(--surface-light);
+            border: 2px dashed var(--primary);
+        }
+
+        .deck-item.editable input,
+        .deck-item.editable textarea,
+        .deck-item.editable select {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.5rem;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .deck-item.editable textarea {
+            min-height: 60px;
+            resize: vertical;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-muted);
+        }
+
+        .export-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.5rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            min-width: 200px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 100;
+        }
+
+        .export-menu.active {
+            display: block;
+        }
+
+        .export-option {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .export-option:hover {
+            background: var(--surface-light);
+            color: var(--primary);
+        }
+
+        /* User Management Styles */
+        .users-list {
+            margin-top: 1rem;
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--surface-light);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .user-item-name {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .user-item-role {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .user-item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Accordion für Spezielle Prozesse */
+        .process-accordion {
+            margin-top: 1rem;
+        }
+
+        .process-item {
+            background: var(--surface-light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+
+        .process-header {
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.2s;
+        }
+
+        .process-header:hover {
+            background: rgba(91, 97, 255, 0.05);
+        }
+
+        .process-title {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .process-icon {
+            transition: transform 0.2s;
+            color: var(--text-muted);
+        }
+
+        .process-item.active .process-icon {
+            transform: rotate(180deg);
+        }
+
+        .process-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .process-item.active .process-content {
+            max-height: 500px;
+        }
+
+        .process-body {
+            padding: 0 1rem 1rem 1rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Listen-Stil für Wichtige Hinweise */
+        .hinweise-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .hinweise-list li {
+            padding: 0.75rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .hinweise-list li:last-child {
+            border-bottom: none;
+        }
+
+        .hinweise-list li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* Export/Import Buttons in Modal */
+        .modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--surface-light);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .customers-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .deck-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+            }
+
+            .action-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .action-buttons {
+                width: 100%;
+            }
+
+            .action-buttons button {
+                flex: 1;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="box">
-    <h2 style="text-align:center;color:#5B61FF">FixiT Login</h2>
-    <input type="text" id="user" placeholder="Benutzername" >
-    <input type="password" id="pass" placeholder="Passwort" >
-    <button onclick="doLogin()">Anmelden</button>
-    <div id="msg"></div>
-</div>
-<script>
-function doLogin() {
-    var username = document.getElementById('user').value;
-    var password = document.getElementById('pass').value;
-    document.getElementById('msg').textContent = 'Bitte warten...';
-    
-    fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username, password: password })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-        if (data.success) {
-            document.getElementById('msg').style.color = 'green';
-            document.getElementById('msg').textContent = 'Login OK! Token: ' + data.token.substring(0, 20) + '...';
-            sessionStorage.setItem('fixitToken', data.token);
-            sessionStorage.setItem('fixitUser', JSON.stringify(data.user));
-            // Seite neu laden um das Dashboard zu zeigen
-            setTimeout(function() { window.location.reload(); }, 500);
-        } else {
-            document.getElementById('msg').style.color = 'red';
-            document.getElementById('msg').textContent = 'Fehler: ' + data.error;
+    <!-- Login Screen -->
+    <div class="login-screen" id="loginScreen">
+        <div class="login-box">
+            <div class="login-logo">FixiT</div>
+            <div class="login-subtitle">Service Center Dashboard</div>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label">Benutzername</label>
+                    <input type="text" id="username" class="form-input" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Passwort</label>
+                    <input type="password" id="password" class="form-input" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Anmelden</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <header>
+            <div class="header-content">
+                <div class="logo">FixiT</div>
+                <a href="https://mein.hausverwaltungsportal.online/login" target="_blank" class="fixclient-btn">
+                    🏠 FixClient Login
+                </a>
+                <div class="user-section">
+                    <div class="user-info">
+                        <div class="user-avatar" id="userAvatar">A</div>
+                        <span id="currentUser">Admin</span>
+                    </div>
+                    <button class="logout-btn" onclick="handleLogout()">Abmelden</button>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="container">
+                <div class="action-bar">
+                    <h1 style="font-size: 1.5rem; font-weight: 700;">Kunden-Übersicht</h1>
+                    <div class="action-buttons">
+                        <button class="btn btn-success" onclick="addNewCustomer()">
+                            ➕ Neuer Kunde
+                        </button>
+                        <div style="position: relative;">
+                            <button class="btn btn-primary" onclick="toggleExportMenu()">
+                                📊 Export
+                            </button>
+                            <div class="export-menu" id="exportMenu">
+                                <div class="export-option" onclick="exportBlankTemplate()">
+                                    📄 Blanko-Vorlage (.xlsx)
+                                </div>
+                                <div class="export-option" onclick="exportToExcel()">
+                                    📗 Alle Daten (.xlsx)
+                                </div>
+                                <div class="export-option" onclick="exportToJSON()">
+                                    💾 Backup (JSON)
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="importData()">
+                            📥 Import
+                        </button>
+                        <button class="btn btn-warning" onclick="openUserManagement()" id="userManagementBtn" style="display: none;">
+                            👥 User-Management
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-bar">
+                    <div class="stat-card live">
+                        <div class="stat-label">Live</div>
+                        <div class="stat-value" id="liveCount">0</div>
+                    </div>
+                    <div class="stat-card onboarding">
+                        <div class="stat-label">Onboarding</div>
+                        <div class="stat-value" id="onboardingCount">0</div>
+                    </div>
+                    <div class="stat-card pending">
+                        <div class="stat-label">Coming Soon</div>
+                        <div class="stat-value" id="pendingCount">0</div>
+                    </div>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all">Alle Kunden</button>
+                        <button class="filter-tab" data-filter="live">Live</button>
+                        <button class="filter-tab" data-filter="onboarding">Onboarding</button>
+                        <button class="filter-tab" data-filter="pending">Coming Soon</button>
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" id="searchInput" placeholder="Kunde suchen...">
+                    </div>
+                </div>
+
+                <div class="customers-grid" id="customersGrid"></div>
+                <div class="no-results" id="noResults" style="display: none;">
+                    Keine Kunden gefunden
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Customer Details Modal -->
+    <div class="modal" id="customerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle"></h2>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div class="modal" id="userManagementModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">User-Management</h2>
+                <button class="close-btn" onclick="closeUserManagement()">×</button>
+            </div>
+            <div>
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 1rem; color: var(--primary);">Neuen Benutzer hinzufügen</h3>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
+                        <input type="text" id="newUsername" placeholder="Benutzername" class="form-input">
+                        <input type="text" id="newName" placeholder="Anzeigename" class="form-input">
+                        <select id="newRole" class="form-input">
+                            <option value="user">User</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem;">
+                        <input type="password" id="newPassword" placeholder="Passwort" class="form-input">
+                        <button class="btn btn-success" onclick="addNewUser()">➕ Hinzufügen</button>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 style="margin-bottom: 1rem; color: var(--primary);">Bestehende Benutzer</h3>
+                    <div class="users-list" id="usersList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls" onchange="handleFileImport(event)">
+
+        <script>
+        // === API ===
+        var API_BASE = window.location.origin;
+        var AUTH_TOKEN = sessionStorage.getItem('fixitToken') || null;
+        var currentUser = null;
+        var customers = [];
+        var USERS = {};
+        var currentFilter = 'all';
+        var currentSearch = '';
+        var editMode = false;
+        var currentEditId = null;
+
+        function apiCall(method, path, body) {
+            var opts = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            if (AUTH_TOKEN) opts.headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+            if (body) opts.body = JSON.stringify(body);
+            return fetch(API_BASE + path, opts).then(function(res) {
+                if (res.status === 401) {
+                    AUTH_TOKEN = null;
+                    sessionStorage.removeItem('fixitToken');
+                    sessionStorage.removeItem('fixitUser');
+                    currentUser = null;
+                    document.getElementById('dashboard').classList.remove('active');
+                    document.getElementById('loginScreen').classList.remove('hidden');
+                    showToast('Sitzung abgelaufen', 'error');
+                    throw new Error('Unauthorized');
+                }
+                return res.json();
+            });
         }
-    })
-    .catch(function(e) {
-        document.getElementById('msg').style.color = 'red';
-        document.getElementById('msg').textContent = 'Verbindungsfehler: ' + e.message;
-    });
-}
-</script>
+
+        // === INIT ===
+        window.addEventListener('DOMContentLoaded', function() {
+            var savedUser = sessionStorage.getItem('fixitUser');
+            if (savedUser && AUTH_TOKEN) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            }
+
+            document.querySelectorAll('.filter-tab').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.filter-tab').forEach(function(t) { t.classList.remove('active'); });
+                    tab.classList.add('active');
+                    currentFilter = tab.dataset.filter;
+                    renderCustomers();
+                });
+            });
+
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                currentSearch = e.target.value.toLowerCase();
+                renderCustomers();
+            });
+
+            document.getElementById('customerModal').addEventListener('click', function(e) {
+                if (e.target.id === 'customerModal') closeModal();
+            });
+
+            document.getElementById('userManagementModal').addEventListener('click', function(e) {
+                if (e.target.id === 'userManagementModal') closeUserManagement();
+            });
+        });
+
+        // === LOGIN ===
+        function handleLogin(event) {
+            event.preventDefault();
+            var username = document.getElementById('username').value;
+            var password = document.getElementById('password').value;
+            apiCall('POST', '/api/login', { username: username, password: password })
+            .then(function(result) {
+                if (result.success) {
+                    AUTH_TOKEN = result.token;
+                    currentUser = result.user;
+                    sessionStorage.setItem('fixitToken', AUTH_TOKEN);
+                    sessionStorage.setItem('fixitUser', JSON.stringify(currentUser));
+                    showDashboard();
+                    showToast('Erfolgreich angemeldet!', 'success');
+                } else {
+                    showToast(result.error || 'Ungültige Anmeldedaten', 'error');
+                }
+            }).catch(function(e) {
+                if (e.message !== 'Unauthorized') showToast('Verbindungsfehler', 'error');
+            });
+        }
+
+        function handleLogout() {
+            if (confirm('Möchtest du dich wirklich abmelden?')) {
+                AUTH_TOKEN = null;
+                currentUser = null;
+                sessionStorage.removeItem('fixitToken');
+                sessionStorage.removeItem('fixitUser');
+                document.getElementById('dashboard').classList.remove('active');
+                document.getElementById('loginScreen').classList.remove('hidden');
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('dashboard').classList.add('active');
+            document.getElementById('currentUser').textContent = currentUser.name;
+            document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+            if (currentUser.role === 'admin') {
+                document.getElementById('userManagementBtn').style.display = 'block';
+            }
+            apiCall('GET', '/api/customers').then(function(data) {
+                customers = data;
+                renderCustomers();
+                updateStats();
+            }).catch(function() { customers = []; renderCustomers(); });
+        }
+
+        // === USER MANAGEMENT ===
+        function openUserManagement() {
+            renderUsersList();
+            document.getElementById('userManagementModal').classList.add('active');
+        }
+
+        function closeUserManagement() {
+            document.getElementById('userManagementModal').classList.remove('active');
+            document.getElementById('newUsername').value = '';
+            document.getElementById('newName').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('newRole').value = 'user';
+        }
+
+        function renderUsersList() {
+            var usersList = document.getElementById('usersList');
+            usersList.innerHTML = '<p style="color:var(--text-muted)">Lade...</p>';
+            apiCall('GET', '/api/users').then(function(data) {
+                USERS = data;
+                usersList.innerHTML = '';
+                Object.entries(USERS).forEach(function(entry) {
+                    var username = entry[0];
+                    var user = entry[1];
+                    var userItem = document.createElement('div');
+                    userItem.className = 'user-item';
+                    userItem.innerHTML =
+                        '<div class="user-item-info">' +
+                        '<div class="user-item-name">' + user.name + ' (' + username + ')</div>' +
+                        '<div class="user-item-role">Rolle: ' + user.role + '</div>' +
+                        '</div>' +
+                        '<div class="user-item-actions">' +
+                        '<button class="btn btn-warning" onclick="changePassword('' + username + '')" style="padding:0.5rem 1rem;">🔑 Passwort</button>' +
+                        (username !== 'admin' ? '<button class="btn btn-danger" onclick="deleteUser('' + username + '')" style="padding:0.5rem 1rem;">🗑️</button>' : '') +
+                        '</div>';
+                    usersList.appendChild(userItem);
+                });
+            }).catch(function() {});
+        }
+
+        function addNewUser() {
+            var username = document.getElementById('newUsername').value.trim();
+            var name = document.getElementById('newName').value.trim();
+            var password = document.getElementById('newPassword').value;
+            var role = document.getElementById('newRole').value;
+            if (!username || !name || !password) { showToast('Bitte alle Felder ausfüllen', 'error'); return; }
+            apiCall('POST', '/api/users', { username: username, password: password, name: name, role: role })
+            .then(function(result) {
+                if (result.error) { showToast(result.error, 'error'); return; }
+                renderUsersList();
+                showToast('Benutzer ' + name + ' hinzugefügt!', 'success');
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newName').value = '';
+                document.getElementById('newPassword').value = '';
+            }).catch(function() {});
+        }
+
+        function changePassword(username) {
+            var newPassword = prompt('Neues Passwort für ' + (USERS[username] ? USERS[username].name : username) + ':');
+            if (newPassword && newPassword.trim()) {
+                apiCall('PUT', '/api/users/' + username + '/password', { password: newPassword.trim() })
+                .then(function() { showToast('Passwort geändert', 'success'); })
+                .catch(function() {});
+            }
+        }
+
+        function deleteUser(username) {
+            if (confirm('Benutzer ' + (USERS[username] ? USERS[username].name : username) + ' wirklich löschen?')) {
+                apiCall('DELETE', '/api/users/' + username)
+                .then(function() { renderUsersList(); showToast('Benutzer gelöscht', 'success'); })
+                .catch(function() {});
+            }
+        }
+
+        // === CUSTOMERS ===
+        function renderCustomers() {
+            var grid = document.getElementById('customersGrid');
+            var noResults = document.getElementById('noResults');
+            var filtered = customers;
+            if (currentFilter !== 'all') filtered = filtered.filter(function(c) { return c.status === currentFilter; });
+            if (currentSearch) filtered = filtered.filter(function(c) {
+                return c.name.toLowerCase().includes(currentSearch) ||
+                    (c.contact || '').toLowerCase().includes(currentSearch) ||
+                    (c.phone || '').includes(currentSearch);
+            });
+            if (filtered.length === 0) {
+                grid.style.display = 'none';
+                noResults.style.display = 'block';
+                updateStats();
+                return;
+            }
+            grid.style.display = 'grid';
+            noResults.style.display = 'none';
+            grid.innerHTML = filtered.map(function(c) {
+                return '<div class="customer-card" onclick="openModal(' + c.id + ')">' +
+                    '<div class="customer-header">' +
+                    '<div class="customer-name">' + c.name + '</div>' +
+                    '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>' +
+                    '</div>' +
+                    '<div class="customer-info">' +
+                    '<div class="info-row">📅 Go-Live: ' + c.goLive + '</div>' +
+                    '<div class="info-row">👤 ' + (c.contact || 'Kein Ansprechpartner') + '</div>' +
+                    '<div class="info-row">📞 ' + (c.phone || 'Keine Telefonnummer') + '</div>' +
+                    '</div></div>';
+            }).join('');
+            updateStats();
+        }
+
+        function getStatusText(status) {
+            var texts = { live: 'LIVE', onboarding: 'Onboarding', pending: 'Coming Soon' };
+            return texts[status] || status;
+        }
+
+        function updateStats() {
+            document.getElementById('liveCount').textContent = customers.filter(function(c) { return c.status === 'live'; }).length;
+            document.getElementById('onboardingCount').textContent = customers.filter(function(c) { return c.status === 'onboarding'; }).length;
+            document.getElementById('pendingCount').textContent = customers.filter(function(c) { return c.status === 'pending'; }).length;
+        }
+
+        function saveCustomers() { /* handled by API */ }
+
+        // === MODAL ===
+        function openModal(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            document.getElementById('modalTitle').textContent = customer.name;
+            renderModalContent(customer, false);
+            document.getElementById('customerModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('customerModal').classList.remove('active');
+        }
+
+        function renderModalContent(customer, isEditMode) {
+            var isAdmin = currentUser.role === 'admin';
+            document.getElementById('modalBody').innerHTML =
+                (!isEditMode ? '<div class="modal-actions">' +
+                '<button class="btn btn-primary" onclick="exportSingleCustomer(' + customer.id + ')">📊 Exportieren</button>' +
+                '<button class="btn btn-secondary" onclick="importSingleCustomer(' + customer.id + ')">📥 Aktualisieren</button>' +
+                '</div>' : '') +
+                '<div class="deck-section"><div class="deck-title">Allgemeine Informationen</div>' +
+                '<div class="deck-grid">' +
+                '<div class="deck-item' + (isEditMode && isAdmin ? ' editable' : '') + '">' +
+                '<div class="deck-item-label">Status</div>' +
+                (isEditMode && isAdmin ?
+                    '<select id="edit-status" class="deck-item-value"><option value="live"' + (customer.status==='live'?' selected':'') + '>LIVE</option><option value="onboarding"' + (customer.status==='onboarding'?' selected':'') + '>Onboarding</option><option value="pending"' + (customer.status==='pending'?' selected':'') + '>Coming Soon</option></select>' :
+                    '<div class="deck-item-value"><span class="status-badge ' + customer.status + '">' + getStatusText(customer.status) + '</span></div>') +
+                '</div>' +
+                '<div class="deck-item' + (isEditMode && isAdmin ? ' editable' : '') + '">' +
+                '<div class="deck-item-label">Go-Live Datum</div>' +
+                (isEditMode && isAdmin ? '<input type="text" id="edit-goLive" value="' + customer.goLive + '">' : '<div class="deck-item-value">' + customer.goLive + '</div>') +
+                '</div>' +
+                '<div class="deck-item' + (isEditMode ? ' editable' : '') + '">' +
+                '<div class="deck-item-label">Ansprechpartner</div>' +
+                (isEditMode ? '<input type="text" id="edit-contact" value="' + (customer.contact||'') + '">' : '<div class="deck-item-value">' + (customer.contact||'Nicht angegeben') + '</div>') +
+                '</div>' +
+                '<div class="deck-item' + (isEditMode ? ' editable' : '') + '">' +
+                '<div class="deck-item-label">Telefon</div>' +
+                (isEditMode ? '<input type="text" id="edit-phone" value="' + (customer.phone||'') + '">' : '<div class="deck-item-value">' + (customer.phone||'Nicht angegeben') + '</div>') +
+                '</div></div></div>' +
+                '<div class="deck-section"><div class="deck-title">Verwaltungsdetails</div>' +
+                '<div class="deck-content' + (isEditMode ? ' editable' : '') + '">' +
+                '<div style="margin-bottom:1rem"><div class="deck-item-label">Verwaltungsart</div>' +
+                (isEditMode ? '<input type="text" id="edit-verwaltungsart" value="' + (customer.deck.verwaltungsart||'') + '">' : '<div class="deck-item-value">' + (customer.deck.verwaltungsart||'Nicht angegeben') + '</div>') +
+                '</div><div><div class="deck-item-label">Wording & Besonderheiten</div>' +
+                (isEditMode ? '<textarea id="edit-wording">' + (customer.deck.wording||'') + '</textarea>' : '<div class="deck-item-value">' + (customer.deck.wording||'Nicht angegeben') + '</div>') +
+                '</div></div></div>' +
+                '<div class="deck-section"><div class="deck-title">Wichtige Hinweise</div>' +
+                '<div class="deck-content' + (isEditMode ? ' editable' : '') + '">' +
+                (isEditMode ? '<textarea id="edit-hinweise" placeholder="Jede Zeile wird als Stichpunkt angezeigt">' + (customer.deck.hinweise||'') + '</textarea>' :
+                    (customer.deck.hinweise ? '<ul class="hinweise-list">' + customer.deck.hinweise.split('\n').filter(function(h){return h.trim();}).map(function(h){return '<li>'+h.trim()+'</li>';}).join('') + '</ul>' : '<p style="color:var(--text-muted)">Keine Hinweise</p>')) +
+                '</div></div>' +
+                '<div class="deck-section"><div class="deck-title">Prozesse & Notfallkontakt</div>' +
+                '<div class="deck-grid">' +
+                '<div class="deck-item' + (isEditMode ? ' editable' : '') + '">' +
+                '<div class="deck-item-label">Notfall-Kontakt</div>' +
+                (isEditMode ? '<input type="text" id="edit-notfall" value="' + (customer.deck.notfall||'') + '">' : '<div class="deck-item-value">' + (customer.deck.notfall||'Nicht angegeben') + '</div>') +
+                '</div>' +
+                '<div class="deck-item"><div class="deck-item-label">Letzte Aktualisierung</div><div class="deck-item-value">' + customer.deck.updated + '</div></div>' +
+                '</div>' +
+                '<div style="margin-top:1rem"><div class="deck-item-label">Notizen</div>' +
+                (isEditMode ? '<textarea id="edit-notes">' + (customer.notes||'') + '</textarea>' : '<div class="deck-item-value">' + (customer.notes||'Keine Notizen') + '</div>') +
+                '</div></div>' +
+                (isEditMode ?
+                    '<div class="modal-actions">' +
+                    '<button class="btn btn-success" onclick="saveEdit(' + customer.id + ')">💾 Speichern</button>' +
+                    '<button class="btn btn-secondary" onclick="cancelEdit(' + customer.id + ')">Abbrechen</button>' +
+                    (isAdmin ? '<button class="btn btn-danger" onclick="deleteCustomer(' + customer.id + ')">🗑️ Löschen</button>' : '') +
+                    '</div>' :
+                    (isAdmin ?
+                        '<div class="modal-actions">' +
+                        '<button class="btn btn-primary" onclick="editCustomer(' + customer.id + ')">✏️ Bearbeiten</button>' +
+                        '<button class="btn btn-danger" onclick="deleteCustomer(' + customer.id + ')">🗑️ Löschen</button>' +
+                        '</div>' :
+                        '<div class="modal-actions"><button class="btn btn-primary" onclick="editCustomer(' + customer.id + ')">✏️ Bearbeiten</button></div>'
+                    ));
+        }
+
+        function editCustomer(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            renderModalContent(customer, true);
+            document.getElementById('modalTitle').textContent = customer.name + ' bearbeiten';
+        }
+
+        function saveEdit(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            var isAdmin = currentUser.role === 'admin';
+            if (isAdmin) {
+                customer.status = document.getElementById('edit-status').value;
+                customer.goLive = document.getElementById('edit-goLive').value;
+            }
+            customer.contact = document.getElementById('edit-contact').value;
+            customer.phone = document.getElementById('edit-phone').value;
+            customer.notes = document.getElementById('edit-notes') ? document.getElementById('edit-notes').value : customer.notes;
+            customer.deck.verwaltungsart = document.getElementById('edit-verwaltungsart').value;
+            customer.deck.wording = document.getElementById('edit-wording').value;
+            customer.deck.hinweise = document.getElementById('edit-hinweise').value;
+            customer.deck.notfall = document.getElementById('edit-notfall').value;
+            customer.deck.updated = new Date().toLocaleDateString('de-DE');
+            apiCall('PUT', '/api/customers/' + customerId, customer)
+            .then(function() {
+                return apiCall('GET', '/api/customers');
+            }).then(function(data) {
+                customers = data;
+                renderCustomers();
+                closeModal();
+                showToast('Kunde gespeichert!', 'success');
+            }).catch(function() { showToast('Fehler beim Speichern', 'error'); });
+        }
+
+        function cancelEdit(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            renderModalContent(customer, false);
+            document.getElementById('modalTitle').textContent = customer.name;
+        }
+
+        function deleteCustomer(customerId) {
+            if (confirm('Kunden wirklich löschen?')) {
+                apiCall('DELETE', '/api/customers/' + customerId)
+                .then(function() { return apiCall('GET', '/api/customers'); })
+                .then(function(data) {
+                    customers = data;
+                    renderCustomers();
+                    closeModal();
+                    showToast('Kunde gelöscht', 'success');
+                }).catch(function() { showToast('Fehler beim Löschen', 'error'); });
+            }
+        }
+
+        function addNewCustomer() {
+            var newCustomer = {
+                name: 'Neuer Kunde',
+                status: 'pending',
+                goLive: new Date().toLocaleDateString('de-DE'),
+                dataReady: false,
+                verwaltungAktiv: 'Geplant',
+                buchhaltungAktiv: 'Geplant',
+                contact: '', phone: '', notes: '',
+                deck: { verwaltungsart: '', wording: '', hinweise: '', notfall: '', prozesse: '', updated: new Date().toLocaleDateString('de-DE') }
+            };
+            apiCall('POST', '/api/customers', newCustomer)
+            .then(function(created) { return apiCall('GET', '/api/customers').then(function(data) { customers = data; renderCustomers(); editCustomer(created.id); showToast('Neuer Kunde erstellt!', 'info'); }); })
+            .catch(function() { showToast('Fehler beim Erstellen', 'error'); });
+        }
+
+        // === EXPORT ===
+        function toggleExportMenu() {
+            document.getElementById('exportMenu').classList.toggle('active');
+        }
+
+        function closeExportOnOutside(e) {
+            if (!e.target.closest('.export-dropdown')) {
+                document.getElementById('exportMenu').classList.remove('active');
+            }
+        }
+
+        function exportSingleCustomer(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            var data = [{ 'Kundenname': customer.name, 'Status': getStatusText(customer.status), 'Go-Live Datum': customer.goLive, 'Ansprechpartner': customer.contact, 'Telefon': customer.phone, 'Notizen': customer.notes }];
+            var ws = XLSX.utils.json_to_sheet(data);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Kunde');
+            XLSX.writeFile(wb, customer.name + '_Export.xlsx');
+            document.getElementById('exportMenu').classList.remove('active');
+            showToast('Export erfolgreich!', 'success');
+        }
+
+        function exportBlankTemplate() {
+            var data = [{ 'Kundenname': '', 'Status': '', 'Go-Live Datum': '', 'Ansprechpartner': '', 'Telefon': '', 'Notizen': '' }];
+            var ws = XLSX.utils.json_to_sheet(data);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Vorlage');
+            XLSX.writeFile(wb, 'FixiT_Blanko_Vorlage.xlsx');
+            document.getElementById('exportMenu').classList.remove('active');
+        }
+
+        function exportToExcel() {
+            if (customers.length === 0) { showToast('Keine Kunden vorhanden', 'error'); return; }
+            var data = customers.map(function(c) { return { 'Kundenname': c.name, 'Status': getStatusText(c.status), 'Go-Live Datum': c.goLive, 'Ansprechpartner': c.contact, 'Telefon': c.phone, 'Notizen': c.notes }; });
+            var ws = XLSX.utils.json_to_sheet(data);
+            var wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
+            XLSX.writeFile(wb, 'FixiT_Export_' + new Date().toLocaleDateString('de-DE').replace(/\./g,'-') + '.xlsx');
+            document.getElementById('exportMenu').classList.remove('active');
+            showToast('Excel-Export erfolgreich!', 'success');
+        }
+
+        function exportToJSON() {
+            var dataStr = JSON.stringify({ customers: customers, users: USERS }, null, 2);
+            var blob = new Blob([dataStr], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url; a.download = 'FixiT_Backup.json'; a.click();
+            URL.revokeObjectURL(url);
+            document.getElementById('exportMenu').classList.remove('active');
+            showToast('Backup erstellt!', 'success');
+        }
+
+        function importData() { document.getElementById('fileInput').click(); }
+
+        function importSingleCustomer(customerId) {
+            if (confirm('Kunden mit Excel-Daten überschreiben?')) {
+                var input = document.createElement('input');
+                input.type = 'file'; input.accept = '.xlsx,.xls';
+                input.onchange = function(e) { handleSingleCustomerImport(e, customerId); };
+                input.click();
+            }
+        }
+
+        function handleSingleCustomerImport(event, customerId) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, { type: 'array' });
+                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                if (jsonData.length === 0) { showToast('Datei ist leer', 'error'); return; }
+                var row = jsonData[0];
+                var customer = customers.find(function(c) { return c.id === customerId; });
+                if (!customer) return;
+                if (row['Kundenname']) customer.name = row['Kundenname'];
+                if (row['Ansprechpartner']) customer.contact = row['Ansprechpartner'];
+                if (row['Telefon']) customer.phone = row['Telefon'];
+                customer.deck.updated = new Date().toLocaleDateString('de-DE');
+                apiCall('PUT', '/api/customers/' + customerId, customer)
+                .then(function() { return apiCall('GET', '/api/customers'); })
+                .then(function(data) { customers = data; renderCustomers(); closeModal(); showToast('Kunde aktualisiert!', 'success'); })
+                .catch(function() { showToast('Fehler beim Speichern', 'error'); });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function handleFileImport(event) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, { type: 'array' });
+                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                var maxId = customers.length > 0 ? Math.max.apply(null, customers.map(function(c){return c.id;})) : 0;
+                var newCustomers = [];
+                jsonData.forEach(function(row, index) {
+                    if (row['Kundenname'] && row['Kundenname'].trim()) {
+                        newCustomers.push({
+                            name: row['Kundenname'],
+                            status: row['Status'] === 'LIVE' ? 'live' : row['Status'] === 'Onboarding' ? 'onboarding' : 'pending',
+                            goLive: row['Go-Live Datum'] || new Date().toLocaleDateString('de-DE'),
+                            dataReady: row['Data Ready'] === 'Ja',
+                            verwaltungAktiv: row['Verwaltung aktiviert'] || 'Geplant',
+                            buchhaltungAktiv: row['Buchhaltung aktiviert'] || 'Geplant',
+                            contact: row['Ansprechpartner'] || '',
+                            phone: row['Telefon'] || '',
+                            notes: row['Notizen'] || '',
+                            deck: { verwaltungsart: row['Verwaltungsart']||'', wording: row['Wording & Besonderheiten']||'', hinweise: row['Wichtige Hinweise']||'', notfall: row['Notfall-Kontakt']||'', prozesse: row['Spezial-Prozesse']||'', updated: new Date().toLocaleDateString('de-DE') }
+                        });
+                    }
+                });
+                var promises = newCustomers.map(function(nc) { return apiCall('POST', '/api/customers', nc); });
+                Promise.all(promises).then(function() {
+                    return apiCall('GET', '/api/customers');
+                }).then(function(data) {
+                    customers = data;
+                    renderCustomers();
+                    showToast(newCustomers.length + ' Kunden importiert!', 'success');
+                }).catch(function() { showToast('Fehler beim Import', 'error'); });
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = '';
+        }
+
+        // === TOAST ===
+        function showToast(message, type) {
+            type = type || 'info';
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<div style="flex:1"><div style="font-weight:600;margin-bottom:0.25rem">' +
+                (type === 'success' ? '✓ Erfolg' : type === 'error' ? '✗ Fehler' : 'ℹ Info') +
+                '</div><div style="font-size:0.875rem;color:var(--text-muted)">' + message + '</div></div>';
+            document.body.appendChild(toast);
+            setTimeout(function() {
+                toast.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3000);
+        }
+
+        function toggleProcess(element) { element.classList.toggle('active'); }
+    </script>
 </body>
 </html>
