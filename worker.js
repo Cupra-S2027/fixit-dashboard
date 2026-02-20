@@ -891,7 +891,7 @@ const INDEX_HTML = `<!DOCTYPE html>
                     <input type="password" id="password" class="form-input" required>
                 </div>
                 <button type="submit" class="btn btn-primary">Anmelden</button>
-            </form>
+            </div>
         </div>
     </div>
 
@@ -1027,7 +1027,7 @@ const INDEX_HTML = `<!DOCTYPE html>
 
     <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls" onchange="handleFileImport(event)">
 
-    <script>
+    <script type="module">
         // === API KONFIGURATION ===
         // Cloudflare Worker URL - passt sich automatisch an
         const API_BASE = window.location.origin;
