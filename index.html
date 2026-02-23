@@ -1692,11 +1692,13 @@
             var ppwd = document.getElementById('newPassword');
             if (!uname||!pname||!prole||!ppwd) return;
             if (!uname.value||!pname.value||!ppwd.value) { showToast('Alle Felder ausfüllen!','error'); return; }
-            apiCall('POST','/api/users',{username:uname.value,name:pname.value,role:prole.value,password:ppwd.value}).then(function() {
+            var newUserData = {username:uname.value.trim(),name:pname.value.trim(),role:prole.value,password:ppwd.value};
+            if (!newUserData.username || !newUserData.name || !newUserData.password) { showToast('Alle Felder ausfüllen!','error'); return; }
+            apiCall('POST','/api/users', newUserData).then(function() {
                 uname.value=''; pname.value=''; ppwd.value='';
                 return apiCall('GET','/api/users');
             }).then(function(data) { renderUserList(data); showToast('User angelegt!','success'); })
-            .catch(function() { showToast('Fehler','error'); });
+            .catch(function(e) { showToast('Fehler: ' + (e.message||'unbekannt'),'error'); });
         }
 
         function deleteUser(username) {
@@ -1882,6 +1884,11 @@
         // === ALIASES (HTML button compatibility) ===
         function handleLogout() { logout(); }
         function importData() { document.getElementById('fileInput').click(); }
+        function addNewUser() { addUser(); }
+        function closeModal() {
+            var m = document.getElementById('customerModal');
+            if (m) m.classList.remove('active');
+        }
 
         function toggleProcess(e) { if(e) e.classList.toggle('active'); }
     </script>
