@@ -970,14 +970,11 @@
                                 📊 Export
                             </button>
                             <div class="export-menu" id="exportMenu">
+                                <div class="export-option" onclick="exportAllCustomers()">
+                                    📊 Alle Mandanten exportieren
+                                </div>
                                 <div class="export-option" onclick="exportBlankTemplate()">
-                                    📄 Blanko-Vorlage (.xlsx)
-                                </div>
-                                <div class="export-option" onclick="exportToExcel()">
-                                    📗 Alle Daten (.xlsx)
-                                </div>
-                                <div class="export-option" onclick="exportToJSON()">
-                                    💾 Backup (JSON)
+                                    📄 Import-Vorlage herunterladen
                                 </div>
                             </div>
                         </div>
@@ -1122,7 +1119,6 @@
         // === INIT ===
         window.addEventListener('DOMContentLoaded', function() {
             initDarkMode();
-            initDarkMode();
             var savedUser = sessionStorage.getItem('fixitUser');
             if (savedUser && AUTH_TOKEN) {
                 currentUser = JSON.parse(savedUser);
@@ -1138,16 +1134,18 @@
                 });
             });
 
-            document.getElementById('searchInput').addEventListener('input', function(e) {
+            var si = document.getElementById('searchInput');
+            if (si) si.addEventListener('input', function(e) {
                 currentSearch = e.target.value.toLowerCase();
                 renderCustomers();
             });
 
-            document.getElementById('customerModal').addEventListener('click', function(e) {
+            var cModal = document.getElementById('customerModal');
+            if (cModal) cModal.addEventListener('click', function(e) {
                 if (e.target.id === 'customerModal') closeModal();
             });
-
-            document.getElementById('userManagementModal').addEventListener('click', function(e) {
+            var uModal = document.getElementById('userManagementModal');
+            if (uModal) uModal.addEventListener('click', function(e) {
                 if (e.target.id === 'userManagementModal') closeUserManagement();
             });
         });
@@ -1778,71 +1776,49 @@
             showToast('Export erfolgreich!', 'success');
         }
 
-        function exportBlankTemplate() {
-            var data = [{ 'Kundenname': '', 'Status': '', 'Go-Live Datum': '', 'Ansprechpartner': '', 'Telefon': '', 'Notizen': '' }];
-            var ws = XLSX.utils.json_to_sheet(data);
-            var wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Vorlage');
-            XLSX.writeFile(wb, 'FixiT_Blanko_Vorlage.xlsx');
-            document.getElementById('exportMenu').classList.remove('active');
-        }
+        // === EXPORT / IMPORT (FixiT Format) ===
 
-        function exportToExcel() {
-            if (customers.length === 0) { showToast('Keine Kunden vorhanden', 'error'); return; }
-            var data = customers.map(function(c) { return { 'Kundenname': c.name, 'Status': getStatusText(c.status), 'Go-Live Datum': c.goLive, 'Ansprechpartner': c.contact, 'Telefon': c.phone, 'Notizen': c.notes }; });
-            var ws = XLSX.utils.json_to_sheet(data);
+        function exportAllCustomers() {
+            var rows = [['ERP MandantenID','Mandant / Kunde','Go-Live Datum','Status','Ansprechpartner','Telefon','Email','PLZ','Ort','Verwaltungsart','Wichtige Hinweise','Notfall-Kontakt','Interne Notizen','ERP ExcelKey CP_','Import Status']];
+            customers.forEach(function(c) {
+                rows.push([
+                    c.erpId || '',
+                    c.name || '',
+                    c.goLive || '',
+                    c.status || '',
+                    c.contact || '',
+                    c.phone || '',
+                    c.email || '',
+                    c.plz || '',
+                    c.ort || '',
+                    (c.deck && c.deck.verwaltungsart) || '',
+                    (c.deck && c.deck.hinweise) || '',
+                    (c.deck && c.deck.notfall) || '',
+                    c.notes || '',
+                    c.erpKey || '',
+                    'exportiert'
+                ]);
+            });
             var wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
+            var ws = XLSX.utils.aoa_to_sheet(rows);
+            // Column widths
+            ws['!cols'] = [15,35,15,15,25,18,30,8,20,40,40,25,30,15,12].map(function(w){return {wch:w};});
+            XLSX.utils.book_append_sheet(wb, ws, '🏢 Mandanten');
             XLSX.writeFile(wb, 'FixiT_Export_' + new Date().toLocaleDateString('de-DE').replace(/\./g,'-') + '.xlsx');
-            document.getElementById('exportMenu').classList.remove('active');
-            showToast('Excel-Export erfolgreich!', 'success');
+            showToast('Export erfolgreich!', 'success');
         }
 
-        function exportToJSON() {
-            var dataStr = JSON.stringify({ customers: customers, users: USERS }, null, 2);
-            var blob = new Blob([dataStr], { type: 'application/json' });
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url; a.download = 'FixiT_Backup.json'; a.click();
-            URL.revokeObjectURL(url);
-            document.getElementById('exportMenu').classList.remove('active');
-            showToast('Backup erstellt!', 'success');
-        }
-
-        function importData() { document.getElementById('fileInput').click(); }
-
-        function importSingleCustomer(customerId) {
-            if (confirm('Kunden mit Excel-Daten überschreiben?')) {
-                var input = document.createElement('input');
-                input.type = 'file'; input.accept = '.xlsx,.xls';
-                input.onchange = function(e) { handleSingleCustomerImport(e, customerId); };
-                input.click();
-            }
-        }
-
-        function handleSingleCustomerImport(event, customerId) {
-            var file = event.target.files[0];
-            if (!file) return;
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var data = new Uint8Array(e.target.result);
-                var workbook = XLSX.read(data, { type: 'array' });
-                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                if (jsonData.length === 0) { showToast('Datei ist leer', 'error'); return; }
-                var row = jsonData[0];
-                var customer = customers.find(function(c) { return c.id === customerId; });
-                if (!customer) return;
-                if (row['Kundenname']) customer.name = row['Kundenname'];
-                if (row['Ansprechpartner']) customer.contact = row['Ansprechpartner'];
-                if (row['Telefon']) customer.phone = row['Telefon'];
-                customer.deck.updated = new Date().toLocaleDateString('de-DE');
-                apiCall('PUT', '/api/customers/' + customerId, customer)
-                .then(function() { return apiCall('GET', '/api/customers'); })
-                .then(function(data) { customers = data; renderCustomers(); closeModal(); showToast('Kunde aktualisiert!', 'success'); })
-                .catch(function() { showToast('Fehler beim Speichern', 'error'); });
-            };
-            reader.readAsArrayBuffer(file);
+        function exportBlankTemplate() {
+            var rows = [
+                ['ERP MandantenID','Mandant / Kunde *','Go-Live Datum *','Status *','Ansprechpartner','Telefon','Email','PLZ','Ort','Verwaltungsart','Wichtige Hinweise','Notfall-Kontakt','Interne Notizen','ERP ExcelKey CP_','Import Status'],
+                ['','Beispiel GmbH','01.01.2025','onboarding','Max Mustermann','+49 123 456789','info@beispiel.de','12345','Berlin','WEG Verwaltung','Hinweis 1\nHinweis 2','Notfall: 0800-123','Notiz intern','CP_1','']
+            ];
+            var wb = XLSX.utils.book_new();
+            var ws = XLSX.utils.aoa_to_sheet(rows);
+            ws['!cols'] = [15,35,15,15,25,18,30,8,20,40,40,25,30,15,12].map(function(w){return {wch:w};});
+            XLSX.utils.book_append_sheet(wb, ws, '🏢 Mandanten');
+            XLSX.writeFile(wb, 'FixiT_Import_Vorlage.xlsx');
+            showToast('Vorlage heruntergeladen!', 'success');
         }
 
         function handleFileImport(event) {
@@ -1850,55 +1826,131 @@
             if (!file) return;
             var reader = new FileReader();
             reader.onload = function(e) {
-                var data = new Uint8Array(e.target.result);
-                var workbook = XLSX.read(data, { type: 'array' });
-                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                var maxId = customers.length > 0 ? Math.max.apply(null, customers.map(function(c){return c.id;})) : 0;
-                var newCustomers = [];
-                jsonData.forEach(function(row, index) {
-                    if (row['Kundenname'] && row['Kundenname'].trim()) {
-                        newCustomers.push({
-                            name: row['Kundenname'],
-                            status: row['Status'] === 'LIVE' ? 'live' : row['Status'] === 'Onboarding' ? 'onboarding' : 'pending',
-                            goLive: row['Go-Live Datum'] || new Date().toLocaleDateString('de-DE'),
-                            dataReady: row['Data Ready'] === 'Ja',
-                            verwaltungAktiv: row['Verwaltung aktiviert'] || 'Geplant',
-                            buchhaltungAktiv: row['Buchhaltung aktiviert'] || 'Geplant',
-                            contact: row['Ansprechpartner'] || '',
-                            phone: row['Telefon'] || '',
-                            notes: row['Notizen'] || '',
-                            deck: { verwaltungsart: row['Verwaltungsart']||'', wording: row['Wording & Besonderheiten']||'', hinweise: row['Wichtige Hinweise']||'', notfall: row['Notfall-Kontakt']||'', prozesse: row['Spezial-Prozesse']||'', updated: new Date().toLocaleDateString('de-DE') }
-                        });
+                try {
+                    var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    // Try to find the Mandanten sheet
+                    var sheetName = null;
+                    wb.SheetNames.forEach(function(n) {
+                        if (n.indexOf('Mandanten') !== -1 || n.indexOf('mandanten') !== -1) sheetName = n;
+                    });
+                    if (!sheetName) sheetName = wb.SheetNames[0];
+                    
+                    var ws = wb.Sheets[sheetName];
+                    var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                    
+                    // Find header row (contains "Mandant" or "Kunde")
+                    var headerRow = -1;
+                    rows.forEach(function(row, i) {
+                        if (row.join(' ').indexOf('Mandant') !== -1 || row.join(' ').indexOf('Kunde') !== -1) {
+                            headerRow = i;
+                        }
+                    });
+                    if (headerRow === -1) { showToast('Kein gültiges FixiT Import-Format!', 'error'); return; }
+                    
+                    var headers = rows[headerRow].map(function(h) { return (h||'').toString().toLowerCase().replace(/[^a-z]/g,''); });
+                    var dataRows = rows.slice(headerRow + 1).filter(function(r) { 
+                        return r.some(function(c) { return c !== ''; }); 
+                    });
+                    
+                    if (dataRows.length === 0) { showToast('Keine Daten gefunden!', 'error'); return; }
+                    
+                    function getCol(hdrs, names) {
+                        for (var i = 0; i < names.length; i++) {
+                            var idx = hdrs.indexOf(names[i]);
+                            if (idx !== -1) return idx;
+                        }
+                        return -1;
                     }
-                });
-                var promises = newCustomers.map(function(nc) { return apiCall('POST', '/api/customers', nc); });
-                Promise.all(promises).then(function() {
-                    return apiCall('GET', '/api/customers');
-                }).then(function(data) {
-                    customers = data;
-                    renderCustomers();
-                    showToast(newCustomers.length + ' Kunden importiert!', 'success');
-                }).catch(function() { showToast('Fehler beim Import', 'error'); });
+                    
+                    var colName = getCol(headers, ['mandantkunde','mandant','kunde','bezeichnung','name','firmenname']);
+                    var colStatus = getCol(headers, ['status']);
+                    var colGoLive = getCol(headers, ['golivedatum','golivedatum','gotive','onboardingdatum','datum']);
+                    var colContact = getCol(headers, ['ansprechpartner','kontakt','contact']);
+                    var colPhone = getCol(headers, ['telefon','tel','phone']);
+                    var colEmail = getCol(headers, ['email','mail']);
+                    var colPlz = getCol(headers, ['plz','postleitzahl']);
+                    var colOrt = getCol(headers, ['ort','stadt','city']);
+                    var colVerwaltung = getCol(headers, ['verwaltungsart','verwaltung','besonderheiten']);
+                    var colHinweise = getCol(headers, ['wichtigehinweise','hinweise','notes','notizen']);
+                    var colNotfall = getCol(headers, ['notfallkontakt','notfall']);
+                    var colInternNotizen = getCol(headers, ['internenotizen','internotizen','intern']);
+                    var colErpId = getCol(headers, ['erpmandantenid','mandantenid','erpid']);
+                    var colErpKey = getCol(headers, ['erpexcelkeycp','erpkey','excelkey']);
+                    
+                    if (colName === -1) { showToast('Spalte "Mandant/Kunde" nicht gefunden!', 'error'); return; }
+                    
+                    var statusMap = { 'live': 'live', 'online': 'live', 'onboarding': 'onboarding', 'pending': 'pending', 'comingsoon': 'pending', 'offline': 'offline' };
+                    
+                    var toImport = [];
+                    var skipped = 0;
+                    dataRows.forEach(function(row) {
+                        var name = colName !== -1 ? (row[colName]||'').toString().trim() : '';
+                        if (!name || name === 'Beispiel GmbH') { skipped++; return; }
+                        
+                        var rawStatus = colStatus !== -1 ? (row[colStatus]||'').toString().toLowerCase().replace(/[^a-z]/g,'') : '';
+                        var status = statusMap[rawStatus] || 'onboarding';
+                        
+                        var customer = {
+                            name: name,
+                            status: status,
+                            goLive: colGoLive !== -1 ? (row[colGoLive]||'').toString() : '',
+                            contact: colContact !== -1 ? (row[colContact]||'').toString() : '',
+                            phone: colPhone !== -1 ? (row[colPhone]||'').toString() : '',
+                            email: colEmail !== -1 ? (row[colEmail]||'').toString() : '',
+                            plz: colPlz !== -1 ? (row[colPlz]||'').toString() : '',
+                            ort: colOrt !== -1 ? (row[colOrt]||'').toString() : '',
+                            erpId: colErpId !== -1 ? (row[colErpId]||'').toString() : '',
+                            erpKey: colErpKey !== -1 ? (row[colErpKey]||'').toString() : '',
+                            notes: colInternNotizen !== -1 ? (row[colInternNotizen]||'').toString() : '',
+                            deck: {
+                                verwaltungsart: colVerwaltung !== -1 ? (row[colVerwaltung]||'').toString() : '',
+                                hinweise: colHinweise !== -1 ? (row[colHinweise]||'').toString() : '',
+                                notfall: colNotfall !== -1 ? (row[colNotfall]||'').toString() : '',
+                                wording: '',
+                                updated: new Date().toLocaleDateString('de-DE')
+                            },
+                            lastEditedBy: currentUser.name,
+                            lastEditedAt: new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'})
+                        };
+                        toImport.push(customer);
+                    });
+                    
+                    if (toImport.length === 0) { showToast('Keine importierbaren Zeilen!', 'error'); return; }
+                    
+                    // Show confirmation
+                    if (!confirm(toImport.length + ' Mandanten importieren?' + (skipped > 0 ? ' (' + skipped + ' übersprungen)' : ''))) return;
+                    
+                    // Import all
+                    var done = 0;
+                    var errors = 0;
+                    toImport.forEach(function(c) {
+                        apiCall('POST', '/api/customers', c)
+                        .then(function(saved) {
+                            customers.push(saved);
+                            done++;
+                            if (done + errors === toImport.length) {
+                                renderCustomers();
+                                updateStats();
+                                showToast(done + ' Mandanten importiert!' + (errors > 0 ? ' ' + errors + ' Fehler.' : ''), done > 0 ? 'success' : 'error');
+                            }
+                        }).catch(function() {
+                            errors++;
+                            if (done + errors === toImport.length) {
+                                renderCustomers();
+                                updateStats();
+                                showToast(done + ' importiert, ' + errors + ' Fehler', errors > 0 ? 'warning' : 'success');
+                            }
+                        });
+                    });
+                    
+                } catch(err) {
+                    showToast('Fehler beim Lesen der Datei: ' + err.message, 'error');
+                }
             };
             reader.readAsArrayBuffer(file);
             event.target.value = '';
         }
 
-        // === TOAST ===
-        function showToast(message, type) {
-            type = type || 'info';
-            var toast = document.createElement('div');
-            toast.className = 'toast ' + type;
-            toast.innerHTML = '<div style="flex:1"><div style="font-weight:600;margin-bottom:0.25rem">' +
-                (type === 'success' ? '✓ Erfolg' : type === 'error' ? '✗ Fehler' : 'ℹ Info') +
-                '</div><div style="font-size:0.875rem;color:var(--text-muted)">' + message + '</div></div>';
-            document.body.appendChild(toast);
-            setTimeout(function() {
-                toast.style.animation = 'slideInRight 0.3s ease reverse';
-                setTimeout(function() { toast.remove(); }, 300);
-            }, 3000);
-        }
 
         function toggleProcess(element) { element.classList.toggle('active'); }
 
