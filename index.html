@@ -1105,10 +1105,14 @@
                 renderCustomers();
                 updateStats();
             }).catch(function() { customers = []; renderCustomers(); });
-            // Check password expiry
+            // Check password expiry or forced reset
             apiCall('GET', '/api/users/me').then(function(data) {
-                if (data && checkPasswordExpiry(data)) {
-                    showPasswordExpiry();
+                if (data && data.forcePasswordChange) {
+                    currentUser.forcePasswordChange = true;
+                    showPasswordExpiry(true);
+                } else if (data && checkPasswordExpiry(data)) {
+                    currentUser.forcePasswordChange = false;
+                    showPasswordExpiry(false);
                 }
             }).catch(function() {});
         }
@@ -1705,19 +1709,47 @@
             return diffDays > PASSWORD_EXPIRY_DAYS;
         }
 
-        function showPasswordExpiry() {
-            document.getElementById('passwordExpiryModal').classList.add('active');
-            document.getElementById('newPwInput').focus();
+        function showPasswordExpiry(forced) {
+            var modal = document.getElementById('passwordExpiryModal');
+            var msg = document.getElementById('pwExpiryMsg');
+            var oldGroup = document.getElementById('oldPwGroup');
+            if (forced) {
+                msg.innerHTML = '⚠️ Der Admin hat ein temporäres Passwort für dich gesetzt. <strong>Bitte vergib jetzt dein eigenes Passwort.</strong>';
+                oldGroup.style.display = 'none';
+            } else {
+                msg.innerHTML = 'Dein Passwort ist älter als 14 Tage. Bitte gib zuerst dein <strong>aktuelles Passwort</strong> ein.';
+                oldGroup.style.display = 'block';
+            }
+            modal.classList.add('active');
+            setTimeout(function() {
+                var first = forced ? document.getElementById('newPwInput') : document.getElementById('oldPwInput');
+                if (first) first.focus();
+            }, 100);
         }
 
         function submitNewPassword() {
+            var oldPw = document.getElementById('oldPwInput').value;
             var newPw = document.getElementById('newPwInput').value;
             var confirmPw = document.getElementById('newPwConfirm').value;
+            if (!oldPw) { showToast('Bitte aktuelles Passwort eingeben', 'error'); return; }
             if (newPw.length < 8) { showToast('Mindestens 8 Zeichen erforderlich', 'error'); return; }
             if (newPw !== confirmPw) { showToast('Passwörter stimmen nicht überein', 'error'); return; }
-            apiCall('PUT', '/api/users/' + currentUser.username + '/password', { password: newPw })
-            .then(function() {
+            if (newPw === oldPw) { showToast('Neues Passwort muss sich vom alten unterscheiden', 'error'); return; }
+            // First verify old password via login
+            apiCall('POST', '/api/login', { username: currentUser.username, password: oldPw })
+            .then(function(result) {
+                if (!result.success) {
+                    showToast('Aktuelles Passwort ist falsch!', 'error');
+                    return;
+                }
+                return apiCall('PUT', '/api/users/' + currentUser.username + '/password', { password: newPw });
+            })
+            .then(function(result) {
+                if (!result) return;
                 document.getElementById('passwordExpiryModal').classList.remove('active');
+                document.getElementById('oldPwInput').value = '';
+                document.getElementById('newPwInput').value = '';
+                document.getElementById('newPwConfirm').value = '';
                 showToast('Passwort erfolgreich geändert!', 'success');
             }).catch(function() { showToast('Fehler beim Ändern', 'error'); });
         }
@@ -1732,14 +1764,18 @@
             </div>
             <div class="modal-body" style="padding:1.5rem">
                 <p style="margin-bottom:1.5rem;color:var(--text-muted)">
-                    Dein Passwort ist älter als 14 Tage. Bitte vergib dir jetzt ein neues Passwort um fortzufahren.
+                    Dein Passwort ist älter als 14 Tage. Bitte gib zuerst dein <strong>aktuelles Passwort</strong> ein und vergib dann ein neues.
                 </p>
+                <div class="form-group">
+                    <label class="form-label">Aktuelles Passwort</label>
+                    <input type="password" id="oldPwInput" class="form-input" placeholder="Dein aktuelles Passwort">
+                </div>
                 <div class="form-group">
                     <label class="form-label">Neues Passwort</label>
                     <input type="password" id="newPwInput" class="form-input" placeholder="Mindestens 8 Zeichen">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Passwort bestätigen</label>
+                    <label class="form-label">Neues Passwort bestätigen</label>
                     <input type="password" id="newPwConfirm" class="form-input" placeholder="Passwort wiederholen">
                 </div>
                 <button class="btn btn-primary" style="width:100%;margin-top:1rem" onclick="submitNewPassword()">
