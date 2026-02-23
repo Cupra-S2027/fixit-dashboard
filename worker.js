@@ -78,8 +78,15 @@ export default {
     var isAdmin = me && me.role === 'admin';
 
     if (path === '/api/users/me' && request.method === 'GET') {
-      var force = me.forcePasswordChange || !me.passwordChangedAt;
-      return json({ username: username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null, forcePasswordChange: force });
+      var force = me.forcePasswordChange || false;
+      var expired = false;
+      if (!me.passwordChangedAt) {
+        force = true;
+      } else {
+        var daysSince = (Date.now() - new Date(me.passwordChangedAt).getTime()) / 86400000;
+        if (daysSince > 14) expired = true;
+      }
+      return json({ username: username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null, forcePasswordChange: force, passwordExpired: expired });
     }
 
     if (path === '/api/customers' && request.method === 'GET') {
