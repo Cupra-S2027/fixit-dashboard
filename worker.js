@@ -126,7 +126,7 @@ export default {
       const { username: nu, password, name, role } = await request.json();
       const users = await getUsers(env.KV);
       if (users[nu]) return json({ error: 'Benutzername existiert bereits' }, 400);
-      users[nu] = { password, name, role };
+      users[nu] = { password, name, role, forcePasswordChange: true };
       await env.KV.put('users', JSON.stringify(users));
       return json({ success: true });
     }
