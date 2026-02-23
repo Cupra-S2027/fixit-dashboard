@@ -1105,6 +1105,12 @@
                 renderCustomers();
                 updateStats();
             }).catch(function() { customers = []; renderCustomers(); });
+            // Check password expiry
+            apiCall('GET', '/api/users/me').then(function(data) {
+                if (data && checkPasswordExpiry(data)) {
+                    showPasswordExpiry();
+                }
+            }).catch(function() {});
         }
 
         // === USER MANAGEMENT ===
@@ -1235,6 +1241,7 @@
                     '<div class="info-row">📅 Go-Live: ' + c.goLive + '</div>' +
                     '<div class="info-row">👤 ' + (c.contact || 'Kein Ansprechpartner') + '</div>' +
                     '<div class="info-row">📞 ' + (c.phone || 'Keine Telefonnummer') + '</div>' +
+                    (c.lastEditedBy ? '<div class="info-row" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);font-size:0.8rem;color:var(--text-muted)"><span style="background:var(--primary);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;margin-right:0.4rem">' + c.lastEditedBy.charAt(0).toUpperCase() + '</span>Zuletzt: ' + c.lastEditedBy + ' · ' + c.lastEditedAt + '</div>' : '') +
                     '</div></div>';
             }).join('');
             updateStats();
@@ -1416,7 +1423,8 @@
             grid4.appendChild(makeField('Notfall-Kontakt', customer.deck.notfall, 'edit-notfall', isEditMode, false));
             var updDiv = document.createElement('div');
             updDiv.className = 'deck-item';
-            updDiv.innerHTML = '<div class="deck-item-label">Letzte Aktualisierung</div><div class="deck-item-value">' + customer.deck.updated + '</div>';
+            updDiv.innerHTML = '<div class="deck-item-label">Letzte Aktualisierung</div><div class="deck-item-value">' + customer.deck.updated + 
+                (customer.lastEditedBy ? ' <span style="background:var(--primary);color:white;border-radius:12px;padding:0.1rem 0.5rem;font-size:0.75rem;margin-left:0.5rem">' + customer.lastEditedBy.charAt(0).toUpperCase() + ' ' + customer.lastEditedBy + '</span>' : '') + '</div>';
             grid4.appendChild(updDiv);
             sec4.appendChild(grid4);
             var notesWrap = document.createElement('div');
@@ -1447,11 +1455,15 @@
                     actDiv2.appendChild(delBtn2);
                 }
             } else {
-                var editBtn = document.createElement('button');
-                editBtn.className = 'btn btn-primary';
-                editBtn.textContent = '\u270F\uFE0F Bearbeiten';
-                editBtn.onclick = function() { editCustomer(customer.id); };
-                actDiv2.appendChild(editBtn);
+                var canEdit = isAdmin || currentUser.role === 'manager' || 
+                              (currentUser.role === 'user' && customer.status !== 'pending');
+                if (canEdit) {
+                    var editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-primary';
+                    editBtn.textContent = '\u270F\uFE0F Bearbeiten';
+                    editBtn.onclick = function() { editCustomer(customer.id); };
+                    actDiv2.appendChild(editBtn);
+                }
                 if (isAdmin) {
                     var delBtn3 = document.createElement('button');
                     delBtn3.className = 'btn btn-danger';
@@ -1474,9 +1486,10 @@
             var customer = customers.find(function(c) { return c.id === customerId; });
             if (!customer) return;
             var isAdmin = currentUser.role === 'admin';
-            if (isAdmin) {
-                customer.status = document.getElementById('edit-status').value;
-                customer.goLive = document.getElementById('edit-goLive').value;
+            var isManager = currentUser.role === 'manager';
+            if (isAdmin || isManager) {
+                if (document.getElementById('edit-status')) customer.status = document.getElementById('edit-status').value;
+                if (document.getElementById('edit-goLive')) customer.goLive = document.getElementById('edit-goLive').value;
             }
             customer.contact = document.getElementById('edit-contact').value;
             customer.phone = document.getElementById('edit-phone').value;
@@ -1486,6 +1499,8 @@
             customer.deck.hinweise = document.getElementById('edit-hinweise').value;
             customer.deck.notfall = document.getElementById('edit-notfall').value;
             customer.deck.updated = new Date().toLocaleDateString('de-DE');
+            customer.lastEditedBy = currentUser.name;
+            customer.lastEditedAt = new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
             apiCall('PUT', '/api/customers/' + customerId, customer)
             .then(function() {
                 return apiCall('GET', '/api/customers');
@@ -1678,6 +1693,60 @@
         }
 
         function toggleProcess(element) { element.classList.toggle('active'); }
+
+        // === PASSWORT ABLAUF ===
+        var PASSWORD_EXPIRY_DAYS = 14;
+
+        function checkPasswordExpiry(user) {
+            if (!user.passwordChangedAt) return true; // never set = expired
+            var changed = new Date(user.passwordChangedAt);
+            var now = new Date();
+            var diffDays = (now - changed) / (1000 * 60 * 60 * 24);
+            return diffDays > PASSWORD_EXPIRY_DAYS;
+        }
+
+        function showPasswordExpiry() {
+            document.getElementById('passwordExpiryModal').classList.add('active');
+            document.getElementById('newPwInput').focus();
+        }
+
+        function submitNewPassword() {
+            var newPw = document.getElementById('newPwInput').value;
+            var confirmPw = document.getElementById('newPwConfirm').value;
+            if (newPw.length < 8) { showToast('Mindestens 8 Zeichen erforderlich', 'error'); return; }
+            if (newPw !== confirmPw) { showToast('Passwörter stimmen nicht überein', 'error'); return; }
+            apiCall('PUT', '/api/users/' + currentUser.username + '/password', { password: newPw })
+            .then(function() {
+                document.getElementById('passwordExpiryModal').classList.remove('active');
+                showToast('Passwort erfolgreich geändert!', 'success');
+            }).catch(function() { showToast('Fehler beim Ändern', 'error'); });
+        }
+
     </script>
+
+    <!-- Passwort Ablauf Modal -->
+    <div class="modal" id="passwordExpiryModal" style="z-index:9999">
+        <div class="modal-container" style="max-width:450px">
+            <div class="modal-header">
+                <h2 class="modal-title">🔐 Passwort abgelaufen</h2>
+            </div>
+            <div class="modal-body" style="padding:1.5rem">
+                <p style="margin-bottom:1.5rem;color:var(--text-muted)">
+                    Dein Passwort ist älter als 14 Tage. Bitte vergib dir jetzt ein neues Passwort um fortzufahren.
+                </p>
+                <div class="form-group">
+                    <label class="form-label">Neues Passwort</label>
+                    <input type="password" id="newPwInput" class="form-input" placeholder="Mindestens 8 Zeichen">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Passwort bestätigen</label>
+                    <input type="password" id="newPwConfirm" class="form-input" placeholder="Passwort wiederholen">
+                </div>
+                <button class="btn btn-primary" style="width:100%;margin-top:1rem" onclick="submitNewPassword()">
+                    ✅ Passwort ändern
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
