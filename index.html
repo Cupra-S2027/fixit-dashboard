@@ -965,7 +965,7 @@
                         <button class="btn btn-success" onclick="openNewCustomerModal()" id="newCustomerBtn" style="display:none">
                             ➕ Neuer Kunde
                         </button>
-                        <div style="position: relative;">
+                        <div class="export-dropdown" style="position: relative;">
                             <button class="btn btn-primary" onclick="toggleExportMenu()">
                                 📊 Export
                             </button>
@@ -1545,7 +1545,8 @@
         }
 
         // === EXPORT / IMPORT ===
-        function toggleExportMenu() {
+        function toggleExportMenu(event) {
+            if (event) event.stopPropagation();
             document.getElementById('exportMenu').classList.toggle('active');
         }
 
@@ -1661,10 +1662,16 @@
 
         // === USER MANAGEMENT ===
         function openUserManagement() {
+            var modal = document.getElementById('userManagementModal');
+            if (!modal) { showToast('Modal nicht gefunden!', 'error'); return; }
+            // Show modal immediately, load users
+            modal.classList.add('active');
             apiCall('GET', '/api/users').then(function(data) {
                 renderUserList(data);
-                document.getElementById('userManagementModal').classList.add('active');
-            }).catch(function() { showToast('Fehler beim Laden', 'error'); });
+            }).catch(function(e) { 
+                showToast('Fehler: ' + (e.message||'unbekannt'), 'error'); 
+                console.error('openUserManagement error:', e);
+            });
         }
 
         function closeUserManagement() {
@@ -1883,7 +1890,11 @@
 
         // === ALIASES (HTML button compatibility) ===
         function handleLogout() { logout(); }
-        function importData() { document.getElementById('fileInput').click(); }
+        function importData() { 
+            var fi = document.getElementById('fileInput'); 
+            if (!fi) { showToast('Import-Feld nicht gefunden!', 'error'); return; }
+            fi.click(); 
+        }
         function addNewUser() { addUser(); }
         function closeModal() {
             var m = document.getElementById('customerModal');
