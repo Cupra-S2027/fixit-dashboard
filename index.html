@@ -878,7 +878,7 @@
                 <div class="action-bar">
                     <h1 style="font-size: 1.5rem; font-weight: 700;">Kunden-Übersicht</h1>
                     <div class="action-buttons">
-                        <button class="btn btn-success" onclick="addNewCustomer()">
+                        <button class="btn btn-success" onclick="addNewCustomer()" id="newCustomerBtn" style="display:none">
                             ➕ Neuer Kunde
                         </button>
                         <div style="position: relative;">
@@ -1097,6 +1097,9 @@
             if (currentUser.role === 'admin') {
                 document.getElementById('userManagementBtn').style.display = 'block';
             }
+            if (currentUser.role === 'admin' || currentUser.role === 'manager') {
+                document.getElementById('newCustomerBtn').style.display = 'block';
+            }
             apiCall('GET', '/api/customers').then(function(data) {
                 customers = data;
                 renderCustomers();
@@ -1112,14 +1115,19 @@
 
         function closeUserManagement() {
             document.getElementById('userManagementModal').classList.remove('active');
-            document.getElementById('newUsername').value = '';
-            document.getElementById('newName').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('newRole').value = 'user';
+            var nu = document.getElementById('newUsername');
+            var nn = document.getElementById('newName');
+            var np = document.getElementById('newPassword');
+            var nr = document.getElementById('newRole');
+            if (nu) nu.value = '';
+            if (nn) nn.value = '';
+            if (np) np.value = '';
+            if (nr) nr.value = 'user';
         }
 
         function renderUsersList() {
             var usersList = document.getElementById('usersList');
+            if (!usersList) return;
             usersList.innerHTML = '<p style="color:var(--text-muted)">Lade...</p>';
             apiCall('GET', '/api/users').then(function(data) {
                 USERS = data;
@@ -1172,10 +1180,13 @@
                 if (result.error) { showToast(result.error, 'error'); return; }
                 renderUsersList();
                 showToast('Benutzer ' + name + ' hinzugefügt!', 'success');
-                document.getElementById('newUsername').value = '';
-                document.getElementById('newName').value = '';
-                document.getElementById('newPassword').value = '';
-            }).catch(function() {});
+                var nu = document.getElementById('newUsername');
+                var nn = document.getElementById('newName');
+                var np = document.getElementById('newPassword');
+                if (nu) nu.value = '';
+                if (nn) nn.value = '';
+                if (np) np.value = '';
+            }).catch(function(e) { showToast('Fehler: ' + e.message, 'error'); });
         }
 
         function changePassword(username) {
