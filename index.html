@@ -845,76 +845,6 @@
                 flex: 1;
             }
         }
-
-        /* === VIEW TOGGLE === */
-        .view-toggle { display: flex; gap: 0.5rem; }
-        .view-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 0.4rem 0.7rem; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
-        .view-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-
-        /* === SORT BAR === */
-        .sort-bar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .sort-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 0.35rem 0.8rem; font-size: 0.8rem; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
-        .sort-btn.active { border-color: var(--primary); color: var(--primary); font-weight: 600; }
-        .sort-count { margin-left: auto; font-size: 0.85rem; color: var(--text-muted); }
-
-        /* === TABLE VIEW === */
-        .customer-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
-        .customer-table th { padding: 0.85rem 1rem; text-align: left; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); background: var(--surface-light); border-bottom: 1px solid var(--border); }
-        .customer-table td { padding: 0.9rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: middle; }
-        .customer-table tr:last-child td { border-bottom: none; }
-        .customer-table tr:hover td { background: var(--surface-light); cursor: pointer; }
-        .customer-table .td-actions { display: flex; gap: 0.5rem; opacity: 0; transition: opacity 0.2s; }
-        .customer-table tr:hover .td-actions { opacity: 1; }
-
-        /* === IMPROVED CARD === */
-        .customer-card { position: relative; }
-        .card-quick-actions { position: absolute; top: 1rem; right: 1rem; display: flex; gap: 0.4rem; opacity: 0; transition: opacity 0.2s; }
-        .customer-card:hover .card-quick-actions { opacity: 1; }
-        .quick-btn { background: var(--surface-light); border: 1px solid var(--border); border-radius: 6px; padding: 0.3rem 0.5rem; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
-        .quick-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
-
-        /* === SLIDE-IN DETAIL PANEL === */
-        .detail-panel { position: fixed; top: 0; right: -520px; width: 520px; height: 100vh; background: var(--surface); border-left: 1px solid var(--border); box-shadow: -4px 0 30px rgba(0,0,0,0.15); z-index: 1000; transition: right 0.35s cubic-bezier(0.4,0,0.2,1); overflow-y: auto; display: flex; flex-direction: column; }
-        .detail-panel.open { right: 0; }
-        .detail-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 999; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-        .detail-overlay.open { opacity: 1; pointer-events: all; }
-        .panel-header { padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 1rem; position: sticky; top: 0; background: var(--surface); z-index: 10; }
-        .panel-title { font-size: 1.15rem; font-weight: 700; flex: 1; }
-        .panel-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); padding: 0.2rem 0.5rem; border-radius: 6px; }
-        .panel-close:hover { background: var(--surface-light); }
-        .panel-tabs { display: flex; border-bottom: 1px solid var(--border); padding: 0 1.5rem; background: var(--surface); position: sticky; top: 72px; z-index: 9; }
-        .panel-tab { padding: 0.8rem 1rem; font-size: 0.85rem; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text-muted); transition: all 0.2s; margin-bottom: -1px; }
-        .panel-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .panel-body { padding: 1.5rem; flex: 1; }
-        .panel-section { margin-bottom: 1.5rem; }
-        .panel-section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 0.75rem; }
-        .panel-field { margin-bottom: 1rem; }
-        .panel-field label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.3rem; }
-        .panel-field input, .panel-field select, .panel-field textarea { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-light); color: var(--text); font-size: 0.9rem; font-family: inherit; transition: border 0.2s; }
-        .panel-field input:focus, .panel-field select:focus, .panel-field textarea:focus { outline: none; border-color: var(--primary); background: var(--surface); }
-        .panel-field textarea { min-height: 100px; resize: vertical; }
-        .panel-field .view-value { font-size: 0.9rem; color: var(--text); padding: 0.3rem 0; }
-        .panel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-        .panel-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; gap: 0.75rem; position: sticky; bottom: 0; background: var(--surface); }
-
-        /* === NEW CUSTOMER MODAL === */
-        .step-indicator { display: flex; align-items: center; gap: 0; margin-bottom: 2rem; }
-        .step { display: flex; align-items: center; flex: 1; }
-        .step-circle { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); background: var(--surface); flex-shrink: 0; transition: all 0.3s; }
-        .step.active .step-circle { border-color: var(--primary); background: var(--primary); color: white; }
-        .step.done .step-circle { border-color: var(--success); background: var(--success); color: white; }
-        .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 0.5rem; transition: background 0.3s; }
-        .step.done + .step .step-line, .step.done .step-line { background: var(--success); }
-        .step-label { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; text-align: center; }
-        .step-content { display: none; }
-        .step-content.active { display: block; }
-        .hinweise-list-edit { list-style: none; padding: 0; margin: 0.5rem 0; }
-        .hinweise-list-edit li { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-        .hinweise-list-edit li button { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1rem; padding: 0 0.2rem; }
-        .add-hint-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-        .add-hint-row input { flex: 1; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-light); color: var(--text); font-size: 0.85rem; }
-        .add-hint-row button { padding: 0.5rem 1rem; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; }
-
     </style>
 </head>
 <body>
@@ -962,7 +892,7 @@
                 <div class="action-bar">
                     <h1 style="font-size: 1.5rem; font-weight: 700;">Kunden-Übersicht</h1>
                     <div class="action-buttons">
-                        <button class="btn btn-success" onclick="openNewCustomerModal()" id="newCustomerBtn" style="display:none">
+                        <button class="btn btn-success" onclick="addNewCustomer()" id="newCustomerBtn" style="display:none">
                             ➕ Neuer Kunde
                         </button>
                         <div style="position: relative;">
@@ -970,11 +900,14 @@
                                 📊 Export
                             </button>
                             <div class="export-menu" id="exportMenu">
-                                <div class="export-option" onclick="exportAllCustomers()">
-                                    📊 Alle Mandanten exportieren
-                                </div>
                                 <div class="export-option" onclick="exportBlankTemplate()">
-                                    📄 Import-Vorlage herunterladen
+                                    📄 Blanko-Vorlage (.xlsx)
+                                </div>
+                                <div class="export-option" onclick="exportToExcel()">
+                                    📗 Alle Daten (.xlsx)
+                                </div>
+                                <div class="export-option" onclick="exportToJSON()">
+                                    💾 Backup (JSON)
                                 </div>
                             </div>
                         </div>
@@ -1003,18 +936,7 @@
                 </div>
 
                 <div class="filters">
-                    <div class="sort-bar">
-                    <span style="font-size:0.8rem;color:var(--text-muted);font-weight:600">SORTIEREN:</span>
-                    <button class="sort-btn active" onclick="setSortBy('name', this)">A–Z</button>
-                    <button class="sort-btn" onclick="setSortBy('status', this)">Status</button>
-                    <button class="sort-btn" onclick="setSortBy('date', this)">Datum</button>
-                    <span class="sort-count" id="sortCount"></span>
-                    <div class="view-toggle" style="margin-left:auto">
-                        <button class="view-btn active" onclick="setView('grid', this)" title="Kartenansicht">▦</button>
-                        <button class="view-btn" onclick="setView('table', this)" title="Tabellenansicht">☰</button>
-                    </div>
-                </div>
-                <div class="filter-tabs">
+                    <div class="filter-tabs">
                         <button class="filter-tab active" data-filter="all">Alle Kunden</button>
                         <button class="filter-tab" data-filter="live">Live</button>
                         <button class="filter-tab" data-filter="onboarding">Onboarding</button>
@@ -1026,7 +948,7 @@
                     </div>
                 </div>
 
-                <div class="customers-grid" id="customerGrid"></div>
+                <div class="customers-grid" id="customersGrid"></div>
                 <div class="no-results" id="noResults" style="display: none;">
                     Keine Kunden gefunden
                 </div>
@@ -1119,6 +1041,7 @@
         // === INIT ===
         window.addEventListener('DOMContentLoaded', function() {
             initDarkMode();
+            initDarkMode();
             var savedUser = sessionStorage.getItem('fixitUser');
             if (savedUser && AUTH_TOKEN) {
                 currentUser = JSON.parse(savedUser);
@@ -1134,18 +1057,16 @@
                 });
             });
 
-            var si = document.getElementById('searchInput');
-            if (si) si.addEventListener('input', function(e) {
+            document.getElementById('searchInput').addEventListener('input', function(e) {
                 currentSearch = e.target.value.toLowerCase();
                 renderCustomers();
             });
 
-            var cModal = document.getElementById('customerModal');
-            if (cModal) cModal.addEventListener('click', function(e) {
+            document.getElementById('customerModal').addEventListener('click', function(e) {
                 if (e.target.id === 'customerModal') closeModal();
             });
-            var uModal = document.getElementById('userManagementModal');
-            if (uModal) uModal.addEventListener('click', function(e) {
+
+            document.getElementById('userManagementModal').addEventListener('click', function(e) {
                 if (e.target.id === 'userManagementModal') closeUserManagement();
             });
         });
@@ -1315,371 +1236,269 @@
         }
 
         // === CUSTOMERS ===
-        var currentView = 'grid';
-        var currentSort = 'name';
-        var ncStep_num = 1;
-        var ncHinweise = [];
-        var activePanelCustomerId = null;
-        var panelEditMode = false;
-
-        function setView(view, btn) {
-            currentView = view;
-            document.querySelectorAll('.view-btn').forEach(function(b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            renderCustomers();
-        }
-
-        function setSortBy(sort, btn) {
-            currentSort = sort;
-            document.querySelectorAll('.sort-btn').forEach(function(b) { b.classList.remove('active'); });
-            btn.classList.add('active');
-            renderCustomers();
-        }
-
-        function getSortedFiltered() {
-            var list = customers.filter(function(c) {
-                var matchFilter = currentFilter === 'all' || c.status === currentFilter;
-                var q = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
-                var matchSearch = !q || (c.name && c.name.toLowerCase().includes(q));
-                return matchFilter && matchSearch;
-            });
-            list.sort(function(a, b) {
-                if (currentSort === 'name') return (a.name||'').localeCompare(b.name||'');
-                if (currentSort === 'status') return (a.status||'').localeCompare(b.status||'');
-                if (currentSort === 'date') return (a.goLive||'').localeCompare(b.goLive||'');
-                return 0;
-            });
-            return list;
-        }
-
         function renderCustomers() {
-            var grid = document.getElementById('customerGrid');
-            if (!grid) return;
-            var list = getSortedFiltered();
-            var countEl = document.getElementById('sortCount');
-            if (countEl) countEl.textContent = list.length + ' Kunden';
-
-            if (currentView === 'table') {
-                grid.className = '';
-                grid.style.overflowX = 'auto';
-                var rows = list.map(function(c) {
-                    return '<tr onclick="openDetailPanel(' + c.id + ')">' +
-                        '<td><strong>' + (c.name || '–') + '</strong></td>' +
-                        '<td><span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span></td>' +
-                        '<td>' + (c.goLive || '–') + '</td>' +
-                        '<td>' + (c.contact || '–') + '</td>' +
-                        '<td>' + (c.phone || '–') + '</td>' +
-                        '<td>' + (c.lastEditedBy ? '<span style="font-size:0.8rem;color:var(--text-muted)">' + c.lastEditedBy + '</span>' : '–') + '</td>' +
-                        '<td><div class="td-actions">' +
-                        '<button class="quick-btn" onclick="event.stopPropagation();openDetailPanel(' + c.id + ', true)">✏️</button>' +
-                        (currentUser.role === 'admin' ? '<button class="quick-btn" onclick="event.stopPropagation();deleteCustomer(' + c.id + ')">🗑️</button>' : '') +
-                        '</div></td>' +
-                        '</tr>';
-                }).join('');
-                grid.innerHTML = '<table class="customer-table"><thead><tr>' +
-                    '<th>Firmenname</th><th>Status</th><th>Go-Live</th><th>Ansprechpartner</th><th>Telefon</th><th>Bearbeitet</th><th></th>' +
-                    '</tr></thead><tbody>' + rows + '</tbody></table>';
+            var grid = document.getElementById('customersGrid');
+            var noResults = document.getElementById('noResults');
+            var filtered = customers;
+            if (currentFilter !== 'all') filtered = filtered.filter(function(c) { return c.status === currentFilter; });
+            if (currentSearch) filtered = filtered.filter(function(c) {
+                return c.name.toLowerCase().includes(currentSearch) ||
+                    (c.contact || '').toLowerCase().includes(currentSearch) ||
+                    (c.phone || '').includes(currentSearch);
+            });
+            if (filtered.length === 0) {
+                grid.style.display = 'none';
+                noResults.style.display = 'block';
+                updateStats();
                 return;
             }
-
-            // Grid view
-            grid.className = 'customer-grid';
-            grid.style.overflowX = '';
-            if (list.length === 0) {
-                grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-muted)">Keine Kunden gefunden</div>';
-                return;
-            }
-            grid.innerHTML = list.map(function(c) {
-                var canEdit = currentUser.role === 'admin' || currentUser.role === 'manager' || c.status !== 'pending';
-                return '<div class="customer-card" onclick="openDetailPanel(' + c.id + ')">' +
-                    '<div class="card-quick-actions">' +
-                    (canEdit ? '<button class="quick-btn" onclick="event.stopPropagation();openDetailPanel(' + c.id + ', true)" title="Bearbeiten">✏️</button>' : '') +
-                    (currentUser.role === 'admin' ? '<button class="quick-btn" onclick="event.stopPropagation();deleteCustomer(' + c.id + ')" title="Löschen">🗑️</button>' : '') +
-                    '</div>' +
-                    '<div class="customer-card-header">' +
-                    '<div class="customer-name">' + (c.name || 'Unbekannt') + '</div>' +
+            grid.style.display = 'grid';
+            noResults.style.display = 'none';
+            grid.innerHTML = filtered.map(function(c) {
+                return '<div class="customer-card" onclick="openModal(' + c.id + ')">' +
+                    '<div class="customer-header">' +
+                    '<div class="customer-name">' + c.name + '</div>' +
                     '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>' +
                     '</div>' +
                     '<div class="customer-info">' +
-                    '<div class="info-row">📅 Go-Live: ' + (c.goLive || '–') + '</div>' +
+                    '<div class="info-row">📅 Go-Live: ' + c.goLive + '</div>' +
                     '<div class="info-row">👤 ' + (c.contact || 'Kein Ansprechpartner') + '</div>' +
                     '<div class="info-row">📞 ' + (c.phone || 'Keine Telefonnummer') + '</div>' +
-                    (c.lastEditedBy ? '<div class="info-row" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-muted)">' +
-                    '<span style="background:var(--primary);color:white;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;margin-right:0.4rem">' +
-                    c.lastEditedBy.charAt(0).toUpperCase() + '</span>' + c.lastEditedBy + ' · ' + c.lastEditedAt + '</div>' : '') +
+                    (c.lastEditedBy ? '<div class="info-row" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);font-size:0.8rem;color:var(--text-muted)"><span style="background:var(--primary);color:white;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;margin-right:0.4rem">' + c.lastEditedBy.charAt(0).toUpperCase() + '</span>Zuletzt: ' + c.lastEditedBy + ' · ' + c.lastEditedAt + '</div>' : '') +
                     '</div></div>';
             }).join('');
+            updateStats();
         }
 
-        // ===== DETAIL PANEL =====
-        function openDetailPanel(id, editMode) {
-            var c = customers.find(function(x) { return x.id === id; });
-            if (!c) return;
-            activePanelCustomerId = id;
-            panelEditMode = editMode || false;
-            document.getElementById('panelTitle').textContent = c.name || 'Kunde';
-            document.getElementById('panelStatusBadge').innerHTML = '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>';
-            switchPanelTab('info', document.querySelector('.panel-tab'));
-            document.getElementById('detailPanel').classList.add('open');
-            document.getElementById('detailOverlay').classList.add('open');
-            document.body.style.overflow = 'hidden';
+        function getStatusText(status) {
+            var texts = { live: 'Online', onboarding: 'Onboarding', pending: 'Coming Soon', offline: 'Offline' };
+            return texts[status] || status;
         }
 
-        function closeDetailPanel() {
-            document.getElementById('detailPanel').classList.remove('open');
-            document.getElementById('detailOverlay').classList.remove('open');
-            document.body.style.overflow = '';
-            activePanelCustomerId = null;
-            panelEditMode = false;
+        function updateStats() {
+            document.getElementById('liveCount').textContent = customers.filter(function(c) { return c.status === 'live'; }).length;
+            document.getElementById('onboardingCount').textContent = customers.filter(function(c) { return c.status === 'onboarding'; }).length;
+            document.getElementById('pendingCount').textContent = customers.filter(function(c) { return c.status === 'pending'; }).length;
+            var offlineEl = document.getElementById('offlineCount');
+            if (offlineEl) offlineEl.textContent = customers.filter(function(c) { return c.status === 'offline'; }).length;
         }
 
-        function switchPanelTab(tab, el) {
-            document.querySelectorAll('.panel-tab').forEach(function(t) { t.classList.remove('active'); });
-            if (el) el.classList.add('active');
-            renderPanelTab(tab);
+        function saveCustomers() { /* handled by API */ }
+
+        // === MODAL ===
+        function openModal(customerId) {
+            var customer = customers.find(function(c) { return c.id === customerId; });
+            if (!customer) return;
+            document.getElementById('modalTitle').textContent = customer.name;
+            renderModalContent(customer, false);
+            document.getElementById('customerModal').classList.add('active');
         }
 
-        function renderPanelTab(tab) {
-            var c = customers.find(function(x) { return x.id === activePanelCustomerId; });
-            if (!c) return;
+        function closeModal() {
+            document.getElementById('customerModal').classList.remove('active');
+        }
+
+        function renderModalContent(customer, isEditMode) {
             var isAdmin = currentUser.role === 'admin';
-            var isManager = currentUser.role === 'manager';
-            var canEdit = isAdmin || isManager || c.status !== 'pending';
-            var body = document.getElementById('panelBody');
-            var footer = document.getElementById('panelFooter');
+            var mb = document.getElementById('modalBody');
+            mb.innerHTML = '';
 
-            if (tab === 'info') {
-                var statusOptions = ['onboarding','pending','live','offline'].map(function(s) {
-                    return '<option value="' + s + '"' + (c.status === s ? ' selected' : '') + '>' + getStatusText(s) + '</option>';
-                }).join('');
-                body.innerHTML =
-                    '<div class="panel-section">' +
-                    '<div class="panel-section-title">Allgemein</div>' +
-                    '<div class="panel-grid">' +
-                    '<div class="panel-field"><label>Status</label>' +
-                    (panelEditMode && (isAdmin || isManager) ? '<select id="pe_status">' + statusOptions + '</select>' : '<div class="view-value"><span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span></div>') +
-                    '</div>' +
-                    '<div class="panel-field"><label>Go-Live</label>' +
-                    (panelEditMode && (isAdmin || isManager) ? '<input type="date" id="pe_golive" value="' + (c.goLive||'') + '">' : '<div class="view-value">' + (c.goLive||'–') + '</div>') +
-                    '</div></div>' +
-                    '<div class="panel-grid">' +
-                    '<div class="panel-field"><label>Ansprechpartner</label>' +
-                    (panelEditMode && canEdit ? '<input type="text" id="pe_contact" value="' + (c.contact||'') + '">' : '<div class="view-value">' + (c.contact||'–') + '</div>') +
-                    '</div>' +
-                    '<div class="panel-field"><label>Telefon</label>' +
-                    (panelEditMode && canEdit ? '<input type="tel" id="pe_phone" value="' + (c.phone||'') + '">' : '<div class="view-value">' + (c.phone||'–') + '</div>') +
-                    '</div></div>' +
-                    '<div class="panel-field"><label>Email</label>' +
-                    (panelEditMode && canEdit ? '<input type="email" id="pe_email" value="' + (c.email||'') + '">' : '<div class="view-value">' + (c.email ? '<a href="mailto:' + c.email + '">' + c.email + '</a>' : '–') + '</div>') +
-                    '</div></div>';
-
-                if (c.lastEditedBy) {
-                    body.innerHTML += '<div style="margin-top:1rem;padding:0.75rem;background:var(--surface-light);border-radius:8px;font-size:0.82rem;color:var(--text-muted)">' +
-                        '✏️ Zuletzt bearbeitet von <strong>' + c.lastEditedBy + '</strong> · ' + c.lastEditedAt + '</div>';
-                }
-
-            } else if (tab === 'details') {
-                body.innerHTML =
-                    '<div class="panel-section">' +
-                    '<div class="panel-section-title">Verwaltung & Prozesse</div>' +
-                    '<div class="panel-field"><label>Verwaltungsart</label>' +
-                    (panelEditMode ? '<textarea id="pe_verwaltung">' + (c.deck && c.deck.verwaltungsart||'') + '</textarea>' : '<div class="view-value" style="white-space:pre-wrap">' + (c.deck && c.deck.verwaltungsart || '–') + '</div>') +
-                    '</div>' +
-                    '<div class="panel-field"><label>Wording & Besonderheiten</label>' +
-                    (panelEditMode ? '<textarea id="pe_wording">' + (c.deck && c.deck.wording||'') + '</textarea>' : '<div class="view-value" style="white-space:pre-wrap">' + (c.deck && c.deck.wording || '–') + '</div>') +
-                    '</div>' +
-                    '<div class="panel-field"><label>Notfall-Kontakt</label>' +
-                    (panelEditMode ? '<input type="text" id="pe_notfall" value="' + (c.deck && c.deck.notfall||'') + '">' : '<div class="view-value">' + (c.deck && c.deck.notfall || '–') + '</div>') +
-                    '</div></div>';
-
-            } else if (tab === 'notes') {
-                var hinweise = (c.deck && c.deck.hinweise) ? c.deck.hinweise.split('\n').filter(function(h){return h.trim();}) : [];
-                var hinweiseHtml = hinweise.length > 0
-                    ? '<ul class="hinweise-list">' + hinweise.map(function(h){return '<li>' + h + '</li>';}).join('') + '</ul>'
-                    : '<p style="color:var(--text-muted)">Keine Hinweise</p>';
-                body.innerHTML =
-                    '<div class="panel-section">' +
-                    '<div class="panel-section-title">Wichtige Hinweise</div>' +
-                    (panelEditMode
-                        ? '<textarea id="pe_hinweise" style="width:100%;min-height:120px;padding:0.6rem 0.8rem;border:1px solid var(--border);border-radius:8px;background:var(--surface-light);color:var(--text);font-family:inherit">' + (c.deck && c.deck.hinweise||'') + '</textarea><p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem">Eine Zeile = ein Stichpunkt</p>'
-                        : hinweiseHtml) +
-                    '</div>' +
-                    '<div class="panel-section"><div class="panel-section-title">Interne Notizen</div>' +
-                    (panelEditMode
-                        ? '<textarea id="pe_notes" style="width:100%;min-height:120px;padding:0.6rem 0.8rem;border:1px solid var(--border);border-radius:8px;background:var(--surface-light);color:var(--text);font-family:inherit">' + (c.notes||'') + '</textarea>'
-                        : '<div class="view-value" style="white-space:pre-wrap">' + (c.notes || 'Keine Notizen') + '</div>') +
-                    '</div>';
+            // Export/Import buttons (view mode only)
+            if (!isEditMode) {
+                var actDiv = document.createElement('div');
+                actDiv.className = 'modal-actions';
+                var expBtn = document.createElement('button');
+                expBtn.className = 'btn btn-primary';
+                expBtn.textContent = '\u{1F4CA} Exportieren';
+                expBtn.onclick = function() { exportSingleCustomer(customer.id); };
+                var impBtn = document.createElement('button');
+                impBtn.className = 'btn btn-secondary';
+                impBtn.textContent = '\u{1F4E5} Aktualisieren';
+                impBtn.onclick = function() { importSingleCustomer(customer.id); };
+                actDiv.appendChild(expBtn);
+                actDiv.appendChild(impBtn);
+                mb.appendChild(actDiv);
             }
 
-            // Footer buttons
-            footer.innerHTML = '';
-            if (panelEditMode) {
+            function makeField(label, value, editId, isEdit, adminOnly) {
+                var div = document.createElement('div');
+                div.className = 'deck-item' + (isEdit && (!adminOnly || isAdmin) ? ' editable' : '');
+                var lbl = document.createElement('div');
+                lbl.className = 'deck-item-label';
+                lbl.textContent = label;
+                div.appendChild(lbl);
+                if (isEdit && (!adminOnly || isAdmin)) {
+                    var inp = document.createElement('input');
+                    inp.type = 'text';
+                    inp.id = editId;
+                    inp.value = value || '';
+                    div.appendChild(inp);
+                } else {
+                    var val = document.createElement('div');
+                    val.className = 'deck-item-value';
+                    val.textContent = value || 'Nicht angegeben';
+                    div.appendChild(val);
+                }
+                return div;
+            }
+
+            function makeTextarea(label, value, editId, isEdit) {
+                var wrap = document.createElement('div');
+                wrap.style.marginBottom = '1rem';
+                var lbl = document.createElement('div');
+                lbl.className = 'deck-item-label';
+                lbl.textContent = label;
+                wrap.appendChild(lbl);
+                if (isEdit) {
+                    var ta = document.createElement('textarea');
+                    ta.id = editId;
+                    ta.textContent = value || '';
+                    wrap.appendChild(ta);
+                } else {
+                    var val = document.createElement('div');
+                    val.className = 'deck-item-value';
+                    val.textContent = value || 'Nicht angegeben';
+                    wrap.appendChild(val);
+                }
+                return wrap;
+            }
+
+            // Section: Allgemeine Informationen
+            var sec1 = document.createElement('div');
+            sec1.className = 'deck-section';
+            sec1.innerHTML = '<div class="deck-title">Allgemeine Informationen</div>';
+            var grid1 = document.createElement('div');
+            grid1.className = 'deck-grid';
+
+            // Status field
+            var statusDiv = document.createElement('div');
+            statusDiv.className = 'deck-item' + (isEditMode && isAdmin ? ' editable' : '');
+            statusDiv.innerHTML = '<div class="deck-item-label">Status</div>';
+            if (isEditMode && isAdmin) {
+                var sel = document.createElement('select');
+                sel.id = 'edit-status';
+                sel.className = 'deck-item-value';
+                ['onboarding','pending','live','offline'].forEach(function(s) {
+                    var opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = getStatusText(s);
+                    if (customer.status === s) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+                statusDiv.appendChild(sel);
+            } else {
+                var sb = document.createElement('div');
+                sb.className = 'deck-item-value';
+                sb.innerHTML = '<span class="status-badge ' + customer.status + '">' + getStatusText(customer.status) + '</span>';
+                statusDiv.appendChild(sb);
+            }
+            grid1.appendChild(statusDiv);
+            grid1.appendChild(makeField('Go-Live Datum', customer.goLive, 'edit-goLive', isEditMode, true));
+            grid1.appendChild(makeField('Ansprechpartner', customer.contact, 'edit-contact', isEditMode, false));
+            grid1.appendChild(makeField('Telefon', customer.phone, 'edit-phone', isEditMode, false));
+            sec1.appendChild(grid1);
+            mb.appendChild(sec1);
+
+            // Section: Verwaltungsdetails
+            var sec2 = document.createElement('div');
+            sec2.className = 'deck-section';
+            sec2.innerHTML = '<div class="deck-title">Verwaltungsdetails</div>';
+            var dc = document.createElement('div');
+            dc.className = 'deck-content' + (isEditMode ? ' editable' : '');
+            dc.appendChild(makeTextarea('Verwaltungsart', customer.deck.verwaltungsart, 'edit-verwaltungsart', isEditMode));
+            dc.appendChild(makeTextarea('Wording & Besonderheiten', customer.deck.wording, 'edit-wording', isEditMode));
+            sec2.appendChild(dc);
+            mb.appendChild(sec2);
+
+            // Section: Hinweise
+            var sec3 = document.createElement('div');
+            sec3.className = 'deck-section';
+            sec3.innerHTML = '<div class="deck-title">Wichtige Hinweise</div>';
+            var dc3 = document.createElement('div');
+            dc3.className = 'deck-content' + (isEditMode ? ' editable' : '');
+            if (isEditMode) {
+                var ta3 = document.createElement('textarea');
+                ta3.id = 'edit-hinweise';
+                ta3.placeholder = 'Jede Zeile wird als Stichpunkt angezeigt';
+                ta3.textContent = customer.deck.hinweise || '';
+                dc3.appendChild(ta3);
+            } else {
+                if (customer.deck.hinweise) {
+                    var ul = document.createElement('ul');
+                    ul.className = 'hinweise-list';
+                    customer.deck.hinweise.split('\n').filter(function(h){return h.trim();}).forEach(function(h) {
+                        var li = document.createElement('li');
+                        li.textContent = h.trim();
+                        ul.appendChild(li);
+                    });
+                    dc3.appendChild(ul);
+                } else {
+                    dc3.innerHTML = '<p style="color:var(--text-muted)">Keine Hinweise</p>';
+                }
+            }
+            sec3.appendChild(dc3);
+            mb.appendChild(sec3);
+
+            // Section: Prozesse & Notfall
+            var sec4 = document.createElement('div');
+            sec4.className = 'deck-section';
+            sec4.innerHTML = '<div class="deck-title">Prozesse & Notfallkontakt</div>';
+            var grid4 = document.createElement('div');
+            grid4.className = 'deck-grid';
+            grid4.appendChild(makeField('Notfall-Kontakt', customer.deck.notfall, 'edit-notfall', isEditMode, false));
+            var updDiv = document.createElement('div');
+            updDiv.className = 'deck-item';
+            updDiv.innerHTML = '<div class="deck-item-label">Letzte Aktualisierung</div><div class="deck-item-value">' + customer.deck.updated + 
+                (customer.lastEditedBy ? ' <span style="background:var(--primary);color:white;border-radius:12px;padding:0.1rem 0.5rem;font-size:0.75rem;margin-left:0.5rem">' + customer.lastEditedBy.charAt(0).toUpperCase() + ' ' + customer.lastEditedBy + '</span>' : '') + '</div>';
+            grid4.appendChild(updDiv);
+            sec4.appendChild(grid4);
+            var notesWrap = document.createElement('div');
+            notesWrap.style.marginTop = '1rem';
+            notesWrap.appendChild(makeTextarea('Notizen', customer.notes, 'edit-notes', isEditMode));
+            sec4.appendChild(notesWrap);
+            mb.appendChild(sec4);
+
+            // Action buttons
+            var actDiv2 = document.createElement('div');
+            actDiv2.className = 'modal-actions';
+            if (isEditMode) {
                 var saveBtn = document.createElement('button');
                 saveBtn.className = 'btn btn-success';
-                saveBtn.style.flex = '1';
-                saveBtn.textContent = '💾 Speichern';
-                saveBtn.onclick = function() { savePanelEdit(tab); };
+                saveBtn.textContent = '\u{1F4BE} Speichern';
+                saveBtn.onclick = function() { saveEdit(customer.id); };
                 var cancelBtn = document.createElement('button');
                 cancelBtn.className = 'btn btn-secondary';
                 cancelBtn.textContent = 'Abbrechen';
-                cancelBtn.onclick = function() { panelEditMode = false; renderPanelTab(tab); };
-                footer.appendChild(saveBtn);
-                footer.appendChild(cancelBtn);
-            } else if (canEdit) {
-                var editBtn = document.createElement('button');
-                editBtn.className = 'btn btn-primary';
-                editBtn.style.flex = '1';
-                editBtn.textContent = '✏️ Bearbeiten';
-                editBtn.onclick = function() { panelEditMode = true; renderPanelTab(tab); };
-                footer.appendChild(editBtn);
+                cancelBtn.onclick = function() { cancelEdit(customer.id); };
+                actDiv2.appendChild(saveBtn);
+                actDiv2.appendChild(cancelBtn);
                 if (isAdmin) {
-                    var delBtn = document.createElement('button');
-                    delBtn.className = 'btn btn-danger';
-                    delBtn.textContent = '🗑️';
-                    delBtn.onclick = function() { deleteCustomer(activePanelCustomerId); closeDetailPanel(); };
-                    footer.appendChild(delBtn);
+                    var delBtn2 = document.createElement('button');
+                    delBtn2.className = 'btn btn-danger';
+                    delBtn2.textContent = '\u{1F5D1}\uFE0F Löschen';
+                    delBtn2.onclick = function() { deleteCustomer(customer.id); };
+                    actDiv2.appendChild(delBtn2);
+                }
+            } else {
+                var canEdit = isAdmin || currentUser.role === 'manager' || 
+                              (currentUser.role === 'user' && customer.status !== 'pending');
+                if (canEdit) {
+                    var editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-primary';
+                    editBtn.textContent = '\u270F\uFE0F Bearbeiten';
+                    editBtn.onclick = function() { editCustomer(customer.id); };
+                    actDiv2.appendChild(editBtn);
+                }
+                if (isAdmin) {
+                    var delBtn3 = document.createElement('button');
+                    delBtn3.className = 'btn btn-danger';
+                    delBtn3.textContent = '\u{1F5D1}\uFE0F Löschen';
+                    delBtn3.onclick = function() { deleteCustomer(customer.id); };
+                    actDiv2.appendChild(delBtn3);
                 }
             }
+            mb.appendChild(actDiv2);
         }
-
-        function savePanelEdit(tab) {
-            var c = customers.find(function(x) { return x.id === activePanelCustomerId; });
-            if (!c) return;
-            var isAdmin = currentUser.role === 'admin';
-            var isManager = currentUser.role === 'manager';
-
-            if (tab === 'info') {
-                if (isAdmin || isManager) {
-                    if (document.getElementById('pe_status')) c.status = document.getElementById('pe_status').value;
-                    if (document.getElementById('pe_golive')) c.goLive = document.getElementById('pe_golive').value;
-                }
-                if (document.getElementById('pe_contact')) c.contact = document.getElementById('pe_contact').value;
-                if (document.getElementById('pe_phone')) c.phone = document.getElementById('pe_phone').value;
-                if (document.getElementById('pe_email')) c.email = document.getElementById('pe_email').value;
-            } else if (tab === 'details') {
-                if (!c.deck) c.deck = {};
-                if (document.getElementById('pe_verwaltung')) c.deck.verwaltungsart = document.getElementById('pe_verwaltung').value;
-                if (document.getElementById('pe_wording')) c.deck.wording = document.getElementById('pe_wording').value;
-                if (document.getElementById('pe_notfall')) c.deck.notfall = document.getElementById('pe_notfall').value;
-            } else if (tab === 'notes') {
-                if (!c.deck) c.deck = {};
-                if (document.getElementById('pe_hinweise')) c.deck.hinweise = document.getElementById('pe_hinweise').value;
-                if (document.getElementById('pe_notes')) c.notes = document.getElementById('pe_notes').value;
-            }
-
-            c.deck = c.deck || {};
-            c.deck.updated = new Date().toLocaleDateString('de-DE');
-            c.lastEditedBy = currentUser.name;
-            c.lastEditedAt = new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
-
-            apiCall('PUT', '/api/customers/' + c.id, c)
-            .then(function() {
-                panelEditMode = false;
-                document.getElementById('panelTitle').textContent = c.name || 'Kunde';
-                document.getElementById('panelStatusBadge').innerHTML = '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>';
-                renderPanelTab(tab);
-                renderCustomers();
-                updateStats();
-                showToast('Gespeichert!', 'success');
-            }).catch(function() { showToast('Fehler beim Speichern', 'error'); });
-        }
-
-        // ===== NEW CUSTOMER MODAL =====
-        function openNewCustomerModal() {
-            ncStep_num = 1;
-            ncHinweise = [];
-            document.getElementById('nc_name').value = '';
-            document.getElementById('nc_status').value = 'onboarding';
-            document.getElementById('nc_golive').value = '';
-            document.getElementById('nc_contact').value = '';
-            document.getElementById('nc_phone').value = '';
-            document.getElementById('nc_email').value = '';
-            document.getElementById('nc_notfall').value = '';
-            document.getElementById('nc_verwaltung').value = '';
-            document.getElementById('nc_notes').value = '';
-            document.getElementById('nc_hinweise_list').innerHTML = '';
-            updateNCSteps();
-            document.getElementById('newCustomerModal').classList.add('active');
-        }
-
-        function closeNewCustomerModal() {
-            document.getElementById('newCustomerModal').classList.remove('active');
-        }
-
-        function updateNCSteps() {
-            for (var i = 1; i <= 3; i++) {
-                var ind = document.getElementById('step' + i + 'ind');
-                var cont = document.getElementById('stepContent' + i);
-                if (i < ncStep_num) { ind.className = 'step done'; }
-                else if (i === ncStep_num) { ind.className = 'step active'; cont.className = 'step-content active'; }
-                else { ind.className = 'step'; }
-                if (cont) cont.className = 'step-content' + (i === ncStep_num ? ' active' : '');
-            }
-            document.getElementById('ncPrevBtn').style.display = ncStep_num > 1 ? 'block' : 'none';
-            document.getElementById('ncNextBtn').style.display = ncStep_num < 3 ? 'block' : 'none';
-            document.getElementById('ncSaveBtn').style.display = ncStep_num === 3 ? 'block' : 'none';
-        }
-
-        function ncStep(dir) {
-            if (dir === 1 && ncStep_num === 1) {
-                if (!document.getElementById('nc_name').value.trim()) {
-                    showToast('Bitte Firmenname eingeben!', 'error'); return;
-                }
-            }
-            ncStep_num = Math.max(1, Math.min(3, ncStep_num + dir));
-            updateNCSteps();
-        }
-
-        function addHinweisNC() {
-            var inp = document.getElementById('nc_hinweis_input');
-            var val = inp.value.trim();
-            if (!val) return;
-            ncHinweise.push(val);
-            inp.value = '';
-            var list = document.getElementById('nc_hinweise_list');
-            var li = document.createElement('li');
-            li.innerHTML = '• ' + val + '<button onclick="removeHinweisNC(' + (ncHinweise.length-1) + ', this)">✕</button>';
-            list.appendChild(li);
-        }
-
-        function removeHinweisNC(idx, btn) {
-            ncHinweise.splice(idx, 1);
-            btn.parentElement.remove();
-        }
-
-        function saveNewCustomer() {
-            var name = document.getElementById('nc_name').value.trim();
-            if (!name) { showToast('Firmenname fehlt!', 'error'); return; }
-            var goLiveVal = document.getElementById('nc_golive').value;
-            var newC = {
-                name: name,
-                status: document.getElementById('nc_status').value,
-                goLive: goLiveVal,
-                contact: document.getElementById('nc_contact').value,
-                phone: document.getElementById('nc_phone').value,
-                email: document.getElementById('nc_email').value,
-                notes: document.getElementById('nc_notes').value,
-                deck: {
-                    verwaltungsart: document.getElementById('nc_verwaltung').value,
-                    wording: '',
-                    hinweise: ncHinweise.join('\n'),
-                    notfall: document.getElementById('nc_notfall').value,
-                    updated: new Date().toLocaleDateString('de-DE')
-                },
-                lastEditedBy: currentUser.name,
-                lastEditedAt: new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})
-            };
-            apiCall('POST', '/api/customers', newC)
-            .then(function(saved) {
-                customers.push(saved);
-                renderCustomers();
-                updateStats();
-                closeNewCustomerModal();
-                showToast(name + ' wurde angelegt!', 'success');
-                openDetailPanel(saved.id);
-            }).catch(function() { showToast('Fehler beim Anlegen', 'error'); });
-        }
-
 
         function editCustomer(customerId) {
             var customer = customers.find(function(c) { return c.id === customerId; });
@@ -1776,49 +1595,71 @@
             showToast('Export erfolgreich!', 'success');
         }
 
-        // === EXPORT / IMPORT (FixiT Format) ===
-
-        function exportAllCustomers() {
-            var rows = [['ERP MandantenID','Mandant / Kunde','Go-Live Datum','Status','Ansprechpartner','Telefon','Email','PLZ','Ort','Verwaltungsart','Wichtige Hinweise','Notfall-Kontakt','Interne Notizen','ERP ExcelKey CP_','Import Status']];
-            customers.forEach(function(c) {
-                rows.push([
-                    c.erpId || '',
-                    c.name || '',
-                    c.goLive || '',
-                    c.status || '',
-                    c.contact || '',
-                    c.phone || '',
-                    c.email || '',
-                    c.plz || '',
-                    c.ort || '',
-                    (c.deck && c.deck.verwaltungsart) || '',
-                    (c.deck && c.deck.hinweise) || '',
-                    (c.deck && c.deck.notfall) || '',
-                    c.notes || '',
-                    c.erpKey || '',
-                    'exportiert'
-                ]);
-            });
+        function exportBlankTemplate() {
+            var data = [{ 'Kundenname': '', 'Status': '', 'Go-Live Datum': '', 'Ansprechpartner': '', 'Telefon': '', 'Notizen': '' }];
+            var ws = XLSX.utils.json_to_sheet(data);
             var wb = XLSX.utils.book_new();
-            var ws = XLSX.utils.aoa_to_sheet(rows);
-            // Column widths
-            ws['!cols'] = [15,35,15,15,25,18,30,8,20,40,40,25,30,15,12].map(function(w){return {wch:w};});
-            XLSX.utils.book_append_sheet(wb, ws, '🏢 Mandanten');
-            XLSX.writeFile(wb, 'FixiT_Export_' + new Date().toLocaleDateString('de-DE').replace(/\./g,'-') + '.xlsx');
-            showToast('Export erfolgreich!', 'success');
+            XLSX.utils.book_append_sheet(wb, ws, 'Vorlage');
+            XLSX.writeFile(wb, 'FixiT_Blanko_Vorlage.xlsx');
+            document.getElementById('exportMenu').classList.remove('active');
         }
 
-        function exportBlankTemplate() {
-            var rows = [
-                ['ERP MandantenID','Mandant / Kunde *','Go-Live Datum *','Status *','Ansprechpartner','Telefon','Email','PLZ','Ort','Verwaltungsart','Wichtige Hinweise','Notfall-Kontakt','Interne Notizen','ERP ExcelKey CP_','Import Status'],
-                ['','Beispiel GmbH','01.01.2025','onboarding','Max Mustermann','+49 123 456789','info@beispiel.de','12345','Berlin','WEG Verwaltung','Hinweis 1\nHinweis 2','Notfall: 0800-123','Notiz intern','CP_1','']
-            ];
+        function exportToExcel() {
+            if (customers.length === 0) { showToast('Keine Kunden vorhanden', 'error'); return; }
+            var data = customers.map(function(c) { return { 'Kundenname': c.name, 'Status': getStatusText(c.status), 'Go-Live Datum': c.goLive, 'Ansprechpartner': c.contact, 'Telefon': c.phone, 'Notizen': c.notes }; });
+            var ws = XLSX.utils.json_to_sheet(data);
             var wb = XLSX.utils.book_new();
-            var ws = XLSX.utils.aoa_to_sheet(rows);
-            ws['!cols'] = [15,35,15,15,25,18,30,8,20,40,40,25,30,15,12].map(function(w){return {wch:w};});
-            XLSX.utils.book_append_sheet(wb, ws, '🏢 Mandanten');
-            XLSX.writeFile(wb, 'FixiT_Import_Vorlage.xlsx');
-            showToast('Vorlage heruntergeladen!', 'success');
+            XLSX.utils.book_append_sheet(wb, ws, 'Kunden');
+            XLSX.writeFile(wb, 'FixiT_Export_' + new Date().toLocaleDateString('de-DE').replace(/\./g,'-') + '.xlsx');
+            document.getElementById('exportMenu').classList.remove('active');
+            showToast('Excel-Export erfolgreich!', 'success');
+        }
+
+        function exportToJSON() {
+            var dataStr = JSON.stringify({ customers: customers, users: USERS }, null, 2);
+            var blob = new Blob([dataStr], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url; a.download = 'FixiT_Backup.json'; a.click();
+            URL.revokeObjectURL(url);
+            document.getElementById('exportMenu').classList.remove('active');
+            showToast('Backup erstellt!', 'success');
+        }
+
+        function importData() { document.getElementById('fileInput').click(); }
+
+        function importSingleCustomer(customerId) {
+            if (confirm('Kunden mit Excel-Daten überschreiben?')) {
+                var input = document.createElement('input');
+                input.type = 'file'; input.accept = '.xlsx,.xls';
+                input.onchange = function(e) { handleSingleCustomerImport(e, customerId); };
+                input.click();
+            }
+        }
+
+        function handleSingleCustomerImport(event, customerId) {
+            var file = event.target.files[0];
+            if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, { type: 'array' });
+                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                if (jsonData.length === 0) { showToast('Datei ist leer', 'error'); return; }
+                var row = jsonData[0];
+                var customer = customers.find(function(c) { return c.id === customerId; });
+                if (!customer) return;
+                if (row['Kundenname']) customer.name = row['Kundenname'];
+                if (row['Ansprechpartner']) customer.contact = row['Ansprechpartner'];
+                if (row['Telefon']) customer.phone = row['Telefon'];
+                customer.deck.updated = new Date().toLocaleDateString('de-DE');
+                apiCall('PUT', '/api/customers/' + customerId, customer)
+                .then(function() { return apiCall('GET', '/api/customers'); })
+                .then(function(data) { customers = data; renderCustomers(); closeModal(); showToast('Kunde aktualisiert!', 'success'); })
+                .catch(function() { showToast('Fehler beim Speichern', 'error'); });
+            };
+            reader.readAsArrayBuffer(file);
         }
 
         function handleFileImport(event) {
@@ -1826,131 +1667,55 @@
             if (!file) return;
             var reader = new FileReader();
             reader.onload = function(e) {
-                try {
-                    var wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                    // Try to find the Mandanten sheet
-                    var sheetName = null;
-                    wb.SheetNames.forEach(function(n) {
-                        if (n.indexOf('Mandanten') !== -1 || n.indexOf('mandanten') !== -1) sheetName = n;
-                    });
-                    if (!sheetName) sheetName = wb.SheetNames[0];
-                    
-                    var ws = wb.Sheets[sheetName];
-                    var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-                    
-                    // Find header row (contains "Mandant" or "Kunde")
-                    var headerRow = -1;
-                    rows.forEach(function(row, i) {
-                        if (row.join(' ').indexOf('Mandant') !== -1 || row.join(' ').indexOf('Kunde') !== -1) {
-                            headerRow = i;
-                        }
-                    });
-                    if (headerRow === -1) { showToast('Kein gültiges FixiT Import-Format!', 'error'); return; }
-                    
-                    var headers = rows[headerRow].map(function(h) { return (h||'').toString().toLowerCase().replace(/[^a-z]/g,''); });
-                    var dataRows = rows.slice(headerRow + 1).filter(function(r) { 
-                        return r.some(function(c) { return c !== ''; }); 
-                    });
-                    
-                    if (dataRows.length === 0) { showToast('Keine Daten gefunden!', 'error'); return; }
-                    
-                    function getCol(hdrs, names) {
-                        for (var i = 0; i < names.length; i++) {
-                            var idx = hdrs.indexOf(names[i]);
-                            if (idx !== -1) return idx;
-                        }
-                        return -1;
-                    }
-                    
-                    var colName = getCol(headers, ['mandantkunde','mandant','kunde','bezeichnung','name','firmenname']);
-                    var colStatus = getCol(headers, ['status']);
-                    var colGoLive = getCol(headers, ['golivedatum','golivedatum','gotive','onboardingdatum','datum']);
-                    var colContact = getCol(headers, ['ansprechpartner','kontakt','contact']);
-                    var colPhone = getCol(headers, ['telefon','tel','phone']);
-                    var colEmail = getCol(headers, ['email','mail']);
-                    var colPlz = getCol(headers, ['plz','postleitzahl']);
-                    var colOrt = getCol(headers, ['ort','stadt','city']);
-                    var colVerwaltung = getCol(headers, ['verwaltungsart','verwaltung','besonderheiten']);
-                    var colHinweise = getCol(headers, ['wichtigehinweise','hinweise','notes','notizen']);
-                    var colNotfall = getCol(headers, ['notfallkontakt','notfall']);
-                    var colInternNotizen = getCol(headers, ['internenotizen','internotizen','intern']);
-                    var colErpId = getCol(headers, ['erpmandantenid','mandantenid','erpid']);
-                    var colErpKey = getCol(headers, ['erpexcelkeycp','erpkey','excelkey']);
-                    
-                    if (colName === -1) { showToast('Spalte "Mandant/Kunde" nicht gefunden!', 'error'); return; }
-                    
-                    var statusMap = { 'live': 'live', 'online': 'live', 'onboarding': 'onboarding', 'pending': 'pending', 'comingsoon': 'pending', 'offline': 'offline' };
-                    
-                    var toImport = [];
-                    var skipped = 0;
-                    dataRows.forEach(function(row) {
-                        var name = colName !== -1 ? (row[colName]||'').toString().trim() : '';
-                        if (!name || name === 'Beispiel GmbH') { skipped++; return; }
-                        
-                        var rawStatus = colStatus !== -1 ? (row[colStatus]||'').toString().toLowerCase().replace(/[^a-z]/g,'') : '';
-                        var status = statusMap[rawStatus] || 'onboarding';
-                        
-                        var customer = {
-                            name: name,
-                            status: status,
-                            goLive: colGoLive !== -1 ? (row[colGoLive]||'').toString() : '',
-                            contact: colContact !== -1 ? (row[colContact]||'').toString() : '',
-                            phone: colPhone !== -1 ? (row[colPhone]||'').toString() : '',
-                            email: colEmail !== -1 ? (row[colEmail]||'').toString() : '',
-                            plz: colPlz !== -1 ? (row[colPlz]||'').toString() : '',
-                            ort: colOrt !== -1 ? (row[colOrt]||'').toString() : '',
-                            erpId: colErpId !== -1 ? (row[colErpId]||'').toString() : '',
-                            erpKey: colErpKey !== -1 ? (row[colErpKey]||'').toString() : '',
-                            notes: colInternNotizen !== -1 ? (row[colInternNotizen]||'').toString() : '',
-                            deck: {
-                                verwaltungsart: colVerwaltung !== -1 ? (row[colVerwaltung]||'').toString() : '',
-                                hinweise: colHinweise !== -1 ? (row[colHinweise]||'').toString() : '',
-                                notfall: colNotfall !== -1 ? (row[colNotfall]||'').toString() : '',
-                                wording: '',
-                                updated: new Date().toLocaleDateString('de-DE')
-                            },
-                            lastEditedBy: currentUser.name,
-                            lastEditedAt: new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'})
-                        };
-                        toImport.push(customer);
-                    });
-                    
-                    if (toImport.length === 0) { showToast('Keine importierbaren Zeilen!', 'error'); return; }
-                    
-                    // Show confirmation
-                    if (!confirm(toImport.length + ' Mandanten importieren?' + (skipped > 0 ? ' (' + skipped + ' übersprungen)' : ''))) return;
-                    
-                    // Import all
-                    var done = 0;
-                    var errors = 0;
-                    toImport.forEach(function(c) {
-                        apiCall('POST', '/api/customers', c)
-                        .then(function(saved) {
-                            customers.push(saved);
-                            done++;
-                            if (done + errors === toImport.length) {
-                                renderCustomers();
-                                updateStats();
-                                showToast(done + ' Mandanten importiert!' + (errors > 0 ? ' ' + errors + ' Fehler.' : ''), done > 0 ? 'success' : 'error');
-                            }
-                        }).catch(function() {
-                            errors++;
-                            if (done + errors === toImport.length) {
-                                renderCustomers();
-                                updateStats();
-                                showToast(done + ' importiert, ' + errors + ' Fehler', errors > 0 ? 'warning' : 'success');
-                            }
+                var data = new Uint8Array(e.target.result);
+                var workbook = XLSX.read(data, { type: 'array' });
+                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                var maxId = customers.length > 0 ? Math.max.apply(null, customers.map(function(c){return c.id;})) : 0;
+                var newCustomers = [];
+                jsonData.forEach(function(row, index) {
+                    if (row['Kundenname'] && row['Kundenname'].trim()) {
+                        newCustomers.push({
+                            name: row['Kundenname'],
+                            status: row['Status'] === 'LIVE' ? 'live' : row['Status'] === 'Onboarding' ? 'onboarding' : 'pending',
+                            goLive: row['Go-Live Datum'] || new Date().toLocaleDateString('de-DE'),
+                            dataReady: row['Data Ready'] === 'Ja',
+                            verwaltungAktiv: row['Verwaltung aktiviert'] || 'Geplant',
+                            buchhaltungAktiv: row['Buchhaltung aktiviert'] || 'Geplant',
+                            contact: row['Ansprechpartner'] || '',
+                            phone: row['Telefon'] || '',
+                            notes: row['Notizen'] || '',
+                            deck: { verwaltungsart: row['Verwaltungsart']||'', wording: row['Wording & Besonderheiten']||'', hinweise: row['Wichtige Hinweise']||'', notfall: row['Notfall-Kontakt']||'', prozesse: row['Spezial-Prozesse']||'', updated: new Date().toLocaleDateString('de-DE') }
                         });
-                    });
-                    
-                } catch(err) {
-                    showToast('Fehler beim Lesen der Datei: ' + err.message, 'error');
-                }
+                    }
+                });
+                var promises = newCustomers.map(function(nc) { return apiCall('POST', '/api/customers', nc); });
+                Promise.all(promises).then(function() {
+                    return apiCall('GET', '/api/customers');
+                }).then(function(data) {
+                    customers = data;
+                    renderCustomers();
+                    showToast(newCustomers.length + ' Kunden importiert!', 'success');
+                }).catch(function() { showToast('Fehler beim Import', 'error'); });
             };
             reader.readAsArrayBuffer(file);
             event.target.value = '';
         }
 
+        // === TOAST ===
+        function showToast(message, type) {
+            type = type || 'info';
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = '<div style="flex:1"><div style="font-weight:600;margin-bottom:0.25rem">' +
+                (type === 'success' ? '✓ Erfolg' : type === 'error' ? '✗ Fehler' : 'ℹ Info') +
+                '</div><div style="font-size:0.875rem;color:var(--text-muted)">' + message + '</div></div>';
+            document.body.appendChild(toast);
+            setTimeout(function() {
+                toast.style.animation = 'slideInRight 0.3s ease reverse';
+                setTimeout(function() { toast.remove(); }, 300);
+            }, 3000);
+        }
 
         function toggleProcess(element) { element.classList.toggle('active'); }
 
@@ -2064,123 +1829,5 @@
             </div>
         </div>
     </div>
-
-    <!-- Detail Panel Overlay -->
-    <div class="detail-overlay" id="detailOverlay" onclick="closeDetailPanel()"></div>
-
-    <!-- Slide-in Detail Panel -->
-    <div class="detail-panel" id="detailPanel">
-        <div class="panel-header">
-            <div>
-                <div class="panel-title" id="panelTitle">Kunde</div>
-                <div id="panelStatusBadge"></div>
-            </div>
-            <button class="panel-close" onclick="closeDetailPanel()">✕</button>
-        </div>
-        <div class="panel-tabs" id="panelTabs">
-            <div class="panel-tab active" onclick="switchPanelTab('info', this)">📋 Übersicht</div>
-            <div class="panel-tab" onclick="switchPanelTab('details', this)">📁 Details</div>
-            <div class="panel-tab" onclick="switchPanelTab('notes', this)">📝 Notizen</div>
-        </div>
-        <div class="panel-body" id="panelBody"></div>
-        <div class="panel-footer" id="panelFooter"></div>
-    </div>
-
-    <!-- New Customer Modal -->
-    <div class="modal" id="newCustomerModal">
-        <div class="modal-container" style="max-width:580px">
-            <div class="modal-header">
-                <h2 class="modal-title">➕ Neuer Kunde</h2>
-                <button onclick="closeNewCustomerModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted)">✕</button>
-            </div>
-            <div class="modal-body" style="padding:1.5rem">
-                <div class="step-indicator">
-                    <div class="step active" id="step1ind">
-                        <div><div class="step-circle">1</div><div class="step-label">Basis</div></div>
-                        <div class="step-line"></div>
-                    </div>
-                    <div class="step" id="step2ind">
-                        <div><div class="step-circle">2</div><div class="step-label">Kontakt</div></div>
-                        <div class="step-line"></div>
-                    </div>
-                    <div class="step" id="step3ind">
-                        <div><div class="step-circle">3</div><div class="step-label">Details</div></div>
-                    </div>
-                </div>
-
-                <!-- Step 1: Basis -->
-                <div class="step-content active" id="stepContent1">
-                    <div class="panel-field">
-                        <label>Firmenname *</label>
-                        <input type="text" id="nc_name" placeholder="z.B. Mustermann GmbH" class="form-input">
-                    </div>
-                    <div class="panel-grid">
-                        <div class="panel-field">
-                            <label>Status *</label>
-                            <select id="nc_status" class="form-input">
-                                <option value="onboarding">Onboarding</option>
-                                <option value="pending">Coming Soon</option>
-                                <option value="live">Online</option>
-                                <option value="offline">Offline</option>
-                            </select>
-                        </div>
-                        <div class="panel-field">
-                            <label>Go-Live Datum</label>
-                            <input type="date" id="nc_golive" class="form-input">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 2: Kontakt -->
-                <div class="step-content" id="stepContent2">
-                    <div class="panel-grid">
-                        <div class="panel-field">
-                            <label>Ansprechpartner</label>
-                            <input type="text" id="nc_contact" placeholder="Max Mustermann" class="form-input">
-                        </div>
-                        <div class="panel-field">
-                            <label>Telefon</label>
-                            <input type="tel" id="nc_phone" placeholder="+49 123 456789" class="form-input">
-                        </div>
-                    </div>
-                    <div class="panel-field">
-                        <label>Email</label>
-                        <input type="email" id="nc_email" placeholder="info@firma.de" class="form-input">
-                    </div>
-                    <div class="panel-field">
-                        <label>Notfall-Kontakt</label>
-                        <input type="text" id="nc_notfall" placeholder="Notfallkontakt" class="form-input">
-                    </div>
-                </div>
-
-                <!-- Step 3: Details -->
-                <div class="step-content" id="stepContent3">
-                    <div class="panel-field">
-                        <label>Verwaltungsart</label>
-                        <textarea id="nc_verwaltung" class="form-input" placeholder="Wie wird verwaltet?" style="min-height:80px"></textarea>
-                    </div>
-                    <div class="panel-field">
-                        <label>Wichtige Hinweise <span style="font-size:0.75rem;color:var(--text-muted)">(Enter = neuer Stichpunkt)</span></label>
-                        <div id="nc_hinweise_list" class="hinweise-list-edit"></div>
-                        <div class="add-hint-row">
-                            <input type="text" id="nc_hinweis_input" placeholder="Hinweis hinzufügen...">
-                            <button onclick="addHinweisNC()">+ Add</button>
-                        </div>
-                    </div>
-                    <div class="panel-field">
-                        <label>Notizen</label>
-                        <textarea id="nc_notes" class="form-input" placeholder="Interne Notizen..." style="min-height:80px"></textarea>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer" style="padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between">
-                <button class="btn btn-secondary" id="ncPrevBtn" onclick="ncStep(-1)" style="display:none">← Zurück</button>
-                <div style="flex:1"></div>
-                <button class="btn btn-primary" id="ncNextBtn" onclick="ncStep(1)">Weiter →</button>
-                <button class="btn btn-success" id="ncSaveBtn" onclick="saveNewCustomer()" style="display:none">✅ Anlegen</button>
-            </div>
-        </div>
-    </div>
-
 </body>
 </html>
