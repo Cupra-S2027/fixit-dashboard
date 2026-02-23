@@ -941,6 +941,7 @@
                         <button class="filter-tab" data-filter="live">Live</button>
                         <button class="filter-tab" data-filter="onboarding">Onboarding</button>
                         <button class="filter-tab" data-filter="pending">Coming Soon</button>
+                    <button class="filter-tab" data-filter="offline">Offline</button>
                     </div>
                     <div class="search-bar">
                         <input type="text" id="searchInput" placeholder="Kunde suchen...">
@@ -1270,7 +1271,7 @@
         }
 
         function getStatusText(status) {
-            var texts = { live: 'LIVE', onboarding: 'Onboarding', pending: 'Coming Soon' };
+            var texts = { live: 'Online', onboarding: 'Onboarding', pending: 'Coming Soon', offline: 'Offline' };
             return texts[status] || status;
         }
 
@@ -1278,6 +1279,8 @@
             document.getElementById('liveCount').textContent = customers.filter(function(c) { return c.status === 'live'; }).length;
             document.getElementById('onboardingCount').textContent = customers.filter(function(c) { return c.status === 'onboarding'; }).length;
             document.getElementById('pendingCount').textContent = customers.filter(function(c) { return c.status === 'pending'; }).length;
+            var offlineEl = document.getElementById('offlineCount');
+            if (offlineEl) offlineEl.textContent = customers.filter(function(c) { return c.status === 'offline'; }).length;
         }
 
         function saveCustomers() { /* handled by API */ }
@@ -1375,7 +1378,7 @@
                 var sel = document.createElement('select');
                 sel.id = 'edit-status';
                 sel.className = 'deck-item-value';
-                ['live','onboarding','pending'].forEach(function(s) {
+                ['onboarding','pending','live','offline'].forEach(function(s) {
                     var opt = document.createElement('option');
                     opt.value = s;
                     opt.textContent = getStatusText(s);
