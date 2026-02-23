@@ -142,6 +142,14 @@ export default {
       return json({ success: true });
     }
 
+    // Get current user info (for password expiry check)
+    if (path === '/api/users/me' && request.method === 'GET') {
+      const users = await getUsers(env.KV);
+      const me = users[username];
+      if (!me) return json({ error: 'User nicht gefunden' }, 404);
+      return json({ username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null });
+    }
+
     const pm = path.match(/^\/api\/users\/([^/]+)\/password$/);
     if (pm && request.method === 'PUT') {
       const target = decodeURIComponent(pm[1]);
@@ -150,6 +158,7 @@ export default {
       const users = await getUsers(env.KV);
       if (!users[target]) return json({ error: 'User nicht gefunden' }, 404);
       users[target].password = password;
+      users[target].passwordChangedAt = new Date().toISOString();
       await env.KV.put('users', JSON.stringify(users));
       return json({ success: true });
     }
