@@ -28,6 +28,18 @@
             --border: #E6E8F0;
         }
 
+        [data-theme="dark"] {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface-light: #22263a;
+            --text: #e8eaf0;
+            --text-muted: #8b90a0;
+            --border: #2a2d3e;
+            --primary: #6366f1;
+        }
+
+        body { transition: background 0.3s, color 0.3s; }
+
         body {
             font-family: 'Inter', sans-serif;
             background: var(--bg);
@@ -864,6 +876,7 @@
                     🏠 FixClient Login
                 </a>
                 <div class="user-section">
+                <button onclick="toggleDarkMode()" id="darkModeBtn" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:0.3rem 0.6rem;border-radius:8px;transition:background 0.2s" title="Dark/Light Mode">🌙</button>
                 <button onclick="toggleDarkMode()" id="darkModeBtn" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:0.4rem;border-radius:8px;transition:background 0.2s" title="Dark/Light Mode">🌙</button>
                     <div class="user-info">
                         <div class="user-avatar" id="userAvatar">A</div>
@@ -1027,6 +1040,7 @@
         // === INIT ===
         window.addEventListener('DOMContentLoaded', function() {
             initDarkMode();
+            initDarkMode();
             var savedUser = sessionStorage.getItem('fixitUser');
             if (savedUser && AUTH_TOKEN) {
                 currentUser = JSON.parse(savedUser);
@@ -1107,6 +1121,18 @@
                 renderCustomers();
                 updateStats();
             }).catch(function() { customers = []; renderCustomers(); });
+            apiCall('GET', '/api/users/me').then(function(data) {
+                if (data.forcePasswordChange) {
+                    currentUser.forcePasswordChange = true;
+                    showPasswordExpiry(true);
+                } else if (data.passwordChangedAt) {
+                    var days = (Date.now() - new Date(data.passwordChangedAt)) / 86400000;
+                    if (days > 14) { currentUser.forcePasswordChange = false; showPasswordExpiry(false); }
+                } else {
+                    currentUser.forcePasswordChange = false;
+                    showPasswordExpiry(false);
+                }
+            }).catch(function() {});
             // Check password expiry or forced reset
             apiCall('GET', '/api/users/me').then(function(data) {
                 if (data && data.forcePasswordChange) {
