@@ -1072,6 +1072,7 @@
 
                 <div>
                     <h3 style="margin-bottom: 1rem; color: var(--primary);">Bestehende Benutzer</h3>
+                <div id="userList"></div>
                     <div class="users-list" id="usersList"></div>
                 </div>
             </div>
@@ -1216,7 +1217,7 @@
                     return '<tr onclick="openDetailPanel(' + c.id + ')" style="cursor:pointer">' +
                         '<td><strong>' + escHtml(c.name || '–') + '</strong></td>' +
                         '<td><span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span></td>' +
-                        '<td>' + escHtml(c.goLive || '–') + '</td>' +
+                        '<td>' + escHtml(formatDate(c.goLive) || '–') + '</td>' +
                         '<td>' + escHtml(c.contact || '–') + '</td>' +
                         '<td>' + escHtml(c.phone || '–') + '</td>' +
                         '<td><div class="td-actions">' +
@@ -1250,7 +1251,7 @@
                     '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>' +
                     '</div>' +
                     '<div class="customer-info">' +
-                    '<div class="info-row">📅 ' + escHtml(c.goLive || '–') + '</div>' +
+                    '<div class="info-row">📅 ' + escHtml(formatDate(c.goLive) || '–') + '</div>' +
                     '<div class="info-row">👤 ' + escHtml(c.contact || 'Kein Ansprechpartner') + '</div>' +
                     '<div class="info-row">📞 ' + escHtml(c.phone || 'Keine Telefonnummer') + '</div>' +
                     (c.lastEditedBy ? '<div class="info-row" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-muted)">' +
@@ -1857,6 +1858,30 @@
                 if (em && !e.target.closest('.export-dropdown')) em.classList.remove('active');
             });
         });
+
+
+
+        function formatDate(val) {
+            if (!val) return '';
+            var s = String(val).trim();
+            // Excel serial number (pure integer)
+            if (/^\d{5}$/.test(s)) {
+                var d = new Date((parseInt(s) - 25569) * 86400000);
+                return d.toLocaleDateString('de-DE');
+            }
+            // Already formatted dd.mm.yyyy
+            if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(s)) return s;
+            // ISO date yyyy-mm-dd
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+                var parts = s.substring(0,10).split('-');
+                return parts[2] + '.' + parts[1] + '.' + parts[0];
+            }
+            return s;
+        }
+
+        // === ALIASES (HTML button compatibility) ===
+        function handleLogout() { logout(); }
+        function importData() { document.getElementById('fileInput').click(); }
 
         function toggleProcess(e) { if(e) e.classList.toggle('active'); }
     </script>
