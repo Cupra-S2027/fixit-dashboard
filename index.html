@@ -864,6 +864,7 @@
                     🏠 FixClient Login
                 </a>
                 <div class="user-section">
+                <button onclick="toggleDarkMode()" id="darkModeBtn" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:0.4rem;border-radius:8px;transition:background 0.2s" title="Dark/Light Mode">🌙</button>
                     <div class="user-info">
                         <div class="user-avatar" id="userAvatar">A</div>
                         <span id="currentUser">Admin</span>
@@ -1025,6 +1026,7 @@
 
         // === INIT ===
         window.addEventListener('DOMContentLoaded', function() {
+            initDarkMode();
             var savedUser = sessionStorage.getItem('fixitUser');
             if (savedUser && AUTH_TOKEN) {
                 currentUser = JSON.parse(savedUser);
@@ -1697,6 +1699,30 @@
         }
 
         function toggleProcess(element) { element.classList.toggle('active'); }
+
+        // === DARK MODE ===
+        function toggleDarkMode() {
+            var root = document.documentElement;
+            var isDark = root.getAttribute('data-theme') === 'dark';
+            if (isDark) {
+                root.removeAttribute('data-theme');
+                document.getElementById('darkModeBtn').textContent = '🌙';
+                localStorage.setItem('fixitTheme', 'light');
+            } else {
+                root.setAttribute('data-theme', 'dark');
+                document.getElementById('darkModeBtn').textContent = '☀️';
+                localStorage.setItem('fixitTheme', 'dark');
+            }
+        }
+
+        function initDarkMode() {
+            var saved = localStorage.getItem('fixitTheme');
+            if (saved === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                var btn = document.getElementById('darkModeBtn');
+                if (btn) btn.textContent = '☀️';
+            }
+        }
 
         // === PASSWORT ABLAUF ===
         var PASSWORD_EXPIRY_DAYS = 14;
