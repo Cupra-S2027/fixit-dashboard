@@ -1084,9 +1084,7 @@
                     sessionStorage.setItem('fixitUser', JSON.stringify(currentUser));
                     showDashboard();
                     showToast('Erfolgreich angemeldet!', 'success');
-                    if (result.user.forcePasswordChange) {
-                        setTimeout(function() { showPasswordExpiry(true); }, 500);
-                    }
+
                 } else {
                     showToast(result.error || 'Ungültige Anmeldedaten', 'error');
                 }
@@ -1128,16 +1126,10 @@
                 if (!data) return;
                 if (data.forcePasswordChange) {
                     currentUser.forcePasswordChange = true;
-                    showPasswordExpiry(true);
-                } else if (!data.passwordChangedAt) {
-                    currentUser.forcePasswordChange = true;
-                    showPasswordExpiry(true);
-                } else {
-                    var days = (Date.now() - new Date(data.passwordChangedAt)) / 86400000;
-                    if (days > 14) {
-                        currentUser.forcePasswordChange = false;
-                        showPasswordExpiry(false);
-                    }
+                    setTimeout(function() { showPasswordExpiry(true); }, 300);
+                } else if (data.passwordExpired) {
+                    currentUser.forcePasswordChange = false;
+                    setTimeout(function() { showPasswordExpiry(false); }, 300);
                 }
             }).catch(function() {});
             // Check password expiry or forced reset
