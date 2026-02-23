@@ -1084,6 +1084,9 @@
                     sessionStorage.setItem('fixitUser', JSON.stringify(currentUser));
                     showDashboard();
                     showToast('Erfolgreich angemeldet!', 'success');
+                    if (result.user.forcePasswordChange) {
+                        setTimeout(function() { showPasswordExpiry(true); }, 500);
+                    }
                 } else {
                     showToast(result.error || 'Ungültige Anmeldedaten', 'error');
                 }
