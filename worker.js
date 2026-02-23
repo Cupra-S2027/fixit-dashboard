@@ -131,7 +131,7 @@ export default {
       return json({ success: true });
     }
 
-    const um = path.match(/^\/api\/users\/([^/]+)$/);
+    const um = path.match(/^\/api\/users\/([^\/]+)$/);
     if (um && request.method === 'DELETE') {
       if (currentUser.role !== 'admin') return json({ error: 'Keine Berechtigung' }, 403);
       const target = decodeURIComponent(um[1]);
@@ -156,7 +156,7 @@ export default {
       });
     }
 
-    const pm = path.match(/^\/api\/users\/([^/]+)\/password$/);
+    const pm = path.match(/^\/api\/users\/([^\/]+)\/password$/);
     if (pm && request.method === 'PUT') {
       const target = decodeURIComponent(pm[1]);
       if (currentUser.role !== 'admin' && currentUser.username !== target) return json({ error: 'Keine Berechtigung' }, 403);
@@ -177,7 +177,5 @@ export default {
     }
 
     return json({ error: 'Route nicht gefunden' }, 404);
-  }
-};
   }
 };
