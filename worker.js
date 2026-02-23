@@ -38,7 +38,7 @@ export default {
   async fetch(request, env) {
     var url = new URL(request.url);
     var path = url.pathname;
-    var parts = path.replace(/^\//, '').split('/');
+    var parts = (path.startsWith('/') ? path.slice(1) : path).split('/');
 
     if (request.method === 'OPTIONS') {
       return new Response(null, { headers: CORS });
