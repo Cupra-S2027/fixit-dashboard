@@ -877,7 +877,7 @@
                 </a>
                 <div class="user-section">
                 <button onclick="toggleDarkMode()" id="darkModeBtn" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:0.3rem 0.6rem;border-radius:8px;transition:background 0.2s" title="Dark/Light Mode">🌙</button>
-                <button onclick="toggleDarkMode()" id="darkModeBtn" style="background:none;border:none;cursor:pointer;font-size:1.3rem;padding:0.4rem;border-radius:8px;transition:background 0.2s" title="Dark/Light Mode">🌙</button>
+                
                     <div class="user-info">
                         <div class="user-avatar" id="userAvatar">A</div>
                         <span id="currentUser">Admin</span>
@@ -1122,27 +1122,22 @@
                 updateStats();
             }).catch(function() { customers = []; renderCustomers(); });
             apiCall('GET', '/api/users/me').then(function(data) {
+                if (!data) return;
                 if (data.forcePasswordChange) {
                     currentUser.forcePasswordChange = true;
                     showPasswordExpiry(true);
-                } else if (data.passwordChangedAt) {
-                    var days = (Date.now() - new Date(data.passwordChangedAt)) / 86400000;
-                    if (days > 14) { currentUser.forcePasswordChange = false; showPasswordExpiry(false); }
+                } else if (!data.passwordChangedAt) {
+                    currentUser.forcePasswordChange = true;
+                    showPasswordExpiry(true);
                 } else {
-                    currentUser.forcePasswordChange = false;
-                    showPasswordExpiry(false);
+                    var days = (Date.now() - new Date(data.passwordChangedAt)) / 86400000;
+                    if (days > 14) {
+                        currentUser.forcePasswordChange = false;
+                        showPasswordExpiry(false);
+                    }
                 }
             }).catch(function() {});
             // Check password expiry or forced reset
-            apiCall('GET', '/api/users/me').then(function(data) {
-                if (data && data.forcePasswordChange) {
-                    currentUser.forcePasswordChange = true;
-                    showPasswordExpiry(true);
-                } else if (data && checkPasswordExpiry(data)) {
-                    currentUser.forcePasswordChange = false;
-                    showPasswordExpiry(false);
-                }
-            }).catch(function() {});
         }
 
         // === USER MANAGEMENT ===
