@@ -1690,16 +1690,32 @@
             document.getElementById('userManagementModal').classList.remove('active');
         }
 
-        function renderUserList(users) {
+        function renderUserList(data) {
             var list = document.getElementById('userList');
             if (!list) return;
-            list.innerHTML = users.map(function(u) {
-                return '<div class="user-item">' +
-                    '<div class="user-avatar-small">' + (u.name||u.username).charAt(0).toUpperCase() + '</div>' +
-                    '<div style="flex:1"><div style="font-weight:600">' + escHtml(u.name||u.username) + '</div>' +
-                    '<div style="font-size:0.8rem;color:var(--text-muted)">' + escHtml(u.username) + ' · ' + escHtml(u.role) + '</div></div>' +
-                    (u.username !== 'admin' ? '<button class="btn btn-sm" onclick="resetUserPassword(\'' + u.username + '\')" title="Passwort zurücksetzen">🔑</button>' : '') +
-                    (u.username !== 'admin' ? '<button class="btn btn-sm btn-danger" onclick="deleteUser(\'' + u.username + '\')" title="Löschen">🗑️</button>' : '') +
+            // Worker returns OBJECT {username: {name, role}} — convert to array
+            var arr = [];
+            if (Array.isArray(data)) {
+                arr = data;
+            } else if (data && typeof data === 'object') {
+                Object.keys(data).forEach(function(k) {
+                    arr.push({ username: k, name: data[k].name || k, role: data[k].role || 'user' });
+                });
+            }
+            if (arr.length === 0) {
+                list.innerHTML = '<p style="color:var(--text-muted);padding:1rem">Keine Benutzer gefunden</p>';
+                return;
+            }
+            list.innerHTML = arr.map(function(u) {
+                var initial = (u.name||u.username||'?').charAt(0).toUpperCase();
+                return '<div style="display:flex;align-items:center;gap:0.75rem;padding:0.8rem;border-bottom:1px solid var(--border)">' +
+                    '<div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;flex-shrink:0">' + initial + '</div>' +
+                    '<div style="flex:1">' +
+                    '<div style="font-weight:600;color:var(--text)">' + escHtml(u.name||u.username) + '</div>' +
+                    '<div style="font-size:0.8rem;color:var(--text-muted)">' + escHtml(u.username) + ' · ' + escHtml(u.role) + '</div>' +
+                    '</div>' +
+                    '<button class="btn btn-sm" onclick="resetUserPassword(&#39;' + u.username + '&#39;)" title="Passwort setzen" style="padding:0.3rem 0.6rem">🔑</button>' +
+                    (u.username !== 'admin' ? '<button class="btn btn-sm btn-danger" onclick="deleteUser(&#39;' + u.username + '&#39;)" title="Löschen" style="padding:0.3rem 0.6rem">🗑️</button>' : '') +
                     '</div>';
             }).join('');
         }
