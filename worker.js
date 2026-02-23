@@ -95,7 +95,7 @@ export default {
       return json(nc);
     }
 
-    const cm = path.match(/^\/api\/customers\/(\d+)$/);
+    const cmMatch = path.split('/'); const cm = (path.startsWith('/api/customers/') && cmMatch.length === 4) ? [path, cmMatch[3]] : null;
     if (cm && request.method === 'PUT') {
       const id = parseInt(cm[1]);
       const customers = await getCustomers(env.KV);
@@ -131,7 +131,7 @@ export default {
       return json({ success: true });
     }
 
-    const um = path.match(/^\/api\/users\/([^\/]+)$/);
+    const umParts = path.split('/'); const um = (path.startsWith('/api/users/') && umParts.length === 4) ? [path, umParts[3]] : null;
     if (um && request.method === 'DELETE') {
       if (currentUser.role !== 'admin') return json({ error: 'Keine Berechtigung' }, 403);
       const target = decodeURIComponent(um[1]);
@@ -156,7 +156,7 @@ export default {
       });
     }
 
-    const pm = path.match(/^\/api\/users\/([^\/]+)\/password$/);
+    const pmParts = path.split('/'); const pm = (path.startsWith('/api/users/') && pmParts.length === 5 && pmParts[4] === 'password') ? [path, pmParts[3]] : null;
     if (pm && request.method === 'PUT') {
       const target = decodeURIComponent(pm[1]);
       if (currentUser.role !== 'admin' && currentUser.username !== target) return json({ error: 'Keine Berechtigung' }, 403);
