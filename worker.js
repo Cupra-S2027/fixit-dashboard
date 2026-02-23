@@ -78,7 +78,8 @@ export default {
     var isAdmin = me && me.role === 'admin';
 
     if (path === '/api/users/me' && request.method === 'GET') {
-      return json({ username: username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null, forcePasswordChange: me.forcePasswordChange || false });
+      var force = me.forcePasswordChange || !me.passwordChangedAt;
+      return json({ username: username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null, forcePasswordChange: force });
     }
 
     if (path === '/api/customers' && request.method === 'GET') {
