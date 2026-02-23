@@ -1006,7 +1006,18 @@
                 </div>
 
                 <div class="filters">
-                    <div class="filter-tabs">
+                    <div class="sort-bar">
+                    <span style="font-size:0.8rem;color:var(--text-muted);font-weight:600">SORTIEREN:</span>
+                    <button class="sort-btn active" onclick="setSortBy('name', this)">A–Z</button>
+                    <button class="sort-btn" onclick="setSortBy('status', this)">Status</button>
+                    <button class="sort-btn" onclick="setSortBy('date', this)">Datum</button>
+                    <span class="sort-count" id="sortCount"></span>
+                    <div class="view-toggle" style="margin-left:auto">
+                        <button class="view-btn active" onclick="setView('grid', this)" title="Kartenansicht">▦</button>
+                        <button class="view-btn" onclick="setView('table', this)" title="Tabellenansicht">☰</button>
+                    </div>
+                </div>
+                <div class="filter-tabs">
                         <button class="filter-tab active" data-filter="all">Alle Kunden</button>
                         <button class="filter-tab" data-filter="live">Live</button>
                         <button class="filter-tab" data-filter="onboarding">Onboarding</button>
@@ -1018,7 +1029,7 @@
                     </div>
                 </div>
 
-                <div class="customers-grid" id="customersGrid"></div>
+                <div class="customers-grid" id="customerGrid"></div>
                 <div class="no-results" id="noResults" style="display: none;">
                     Keine Kunden gefunden
                 </div>
@@ -1345,6 +1356,7 @@
 
         function renderCustomers() {
             var grid = document.getElementById('customerGrid');
+            if (!grid) return;
             var list = getSortedFiltered();
             var countEl = document.getElementById('sortCount');
             if (countEl) countEl.textContent = list.length + ' Kunden';
