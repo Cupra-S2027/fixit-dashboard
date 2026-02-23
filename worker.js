@@ -147,22 +147,37 @@ export default {
       const users = await getUsers(env.KV);
       const me = users[username];
       if (!me) return json({ error: 'User nicht gefunden' }, 404);
-      return json({ username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null });
+      return json({ 
+        username, 
+        name: me.name, 
+        role: me.role, 
+        passwordChangedAt: me.passwordChangedAt || null,
+        forcePasswordChange: me.forcePasswordChange || false
+      });
     }
 
     const pm = path.match(/^\/api\/users\/([^/]+)\/password$/);
     if (pm && request.method === 'PUT') {
       const target = decodeURIComponent(pm[1]);
       if (currentUser.role !== 'admin' && currentUser.username !== target) return json({ error: 'Keine Berechtigung' }, 403);
-      const { password } = await request.json();
+      const body = await request.json();
       const users = await getUsers(env.KV);
       if (!users[target]) return json({ error: 'User nicht gefunden' }, 404);
-      users[target].password = password;
+      users[target].password = body.password;
       users[target].passwordChangedAt = new Date().toISOString();
+      // Admin setting temp password = force user to change on next login
+      if (currentUser.role === 'admin' && currentUser.username !== target) {
+        users[target].forcePasswordChange = true;
+      } else {
+        // User changed own password - clear force flag
+        users[target].forcePasswordChange = false;
+      }
       await env.KV.put('users', JSON.stringify(users));
       return json({ success: true });
     }
 
     return json({ error: 'Route nicht gefunden' }, 404);
+  }
+};
   }
 };
