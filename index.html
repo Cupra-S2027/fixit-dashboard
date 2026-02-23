@@ -978,7 +978,7 @@
                                 </div>
                             </div>
                         </div>
-                        <button class="btn btn-secondary" onclick="importData()">
+                        <button id="importBtn" class="btn btn-secondary" onclick="importData()">
                             📥 Import
                         </button>
                         <button class="btn btn-warning" onclick="openUserManagement()" id="userManagementBtn" style="display: none;">
@@ -1254,8 +1254,9 @@
                     '<div class="info-row">📅 ' + escHtml(formatDate(c.goLive) || '–') + '</div>' +
                     '<div class="info-row">👤 ' + escHtml(c.contact || 'Kein Ansprechpartner') + '</div>' +
                     '<div class="info-row">📞 ' + escHtml(c.phone || 'Keine Telefonnummer') + '</div>' +
-                    (c.lastEditedBy ? '<div class="info-row" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-muted)">' +
-                    '✏️ ' + escHtml(c.lastEditedBy) + ' · ' + escHtml(c.lastEditedAt || '') + '</div>' : '') +
+                    (c.lastEditedBy ? '<div class="info-row" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem">' +
+                    '<span style="width:20px;height:20px;border-radius:50%;background:var(--primary);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0">' + escHtml((c.lastEditedBy||'?').charAt(0).toUpperCase()) + '</span>' +
+                    '<span>' + escHtml(c.lastEditedBy) + ' · ' + escHtml(c.lastEditedAt||'') + (c.lastEditedTab ? ' · ' + escHtml(c.lastEditedTab) : '') + '</span></div>' : '') +
                     '</div></div>';
             }).join('');
         }
@@ -1343,7 +1344,10 @@
                     field('Email', 'email', c.email, 'email') +
                     '</div>';
                 if (c.lastEditedBy) {
-                    html += '<div style="margin-top:1rem;padding:0.75rem;background:var(--surface-light);border-radius:8px;font-size:0.82rem;color:var(--text-muted)">✏️ Zuletzt: <strong>' + escHtml(c.lastEditedBy) + '</strong> · ' + escHtml(c.lastEditedAt || '') + '</div>';
+                    html += '<div style="margin-top:1rem;padding:0.75rem;background:var(--surface-light);border-radius:8px;font-size:0.82rem;color:var(--text-muted);display:flex;align-items:center;gap:0.5rem">' +
+                    '<span style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">' + escHtml((c.lastEditedBy||'?').charAt(0).toUpperCase()) + '</span>' +
+                    '<div><div style="font-weight:600;color:var(--text)">' + escHtml(c.lastEditedBy) + '</div>' +
+                    '<div>' + escHtml(c.lastEditedAt||'') + (c.lastEditedTab ? ' · ' + escHtml(c.lastEditedTab) : '') + '</div></div></div>';
                 }
             } else if (activePanelTab === 'details') {
                 html = '<div class="panel-section"><div class="panel-section-title">Verwaltung</div>' +
@@ -1426,7 +1430,10 @@
             if (peNotes) c.notes = peNotes.value;
 
             c.lastEditedBy = currentUser.name;
+            c.lastEditedByUsername = currentUser.username;
             c.lastEditedAt = new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'});
+            // Track what tab was changed
+            c.lastEditedTab = activePanelTab === 'info' ? 'Stammdaten' : activePanelTab === 'details' ? 'Verwaltung' : 'Notizen';
 
             apiCall('PUT', '/api/customers/' + c.id, c).then(function() {
                 panelEditMode = false;
@@ -1529,7 +1536,9 @@
                     updated: new Date().toLocaleDateString('de-DE')
                 },
                 lastEditedBy: currentUser.name,
-                lastEditedAt: new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'})
+                lastEditedByUsername: currentUser.username,
+                lastEditedAt: new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}),
+                lastEditedTab: 'Erstellt'
             };
 
             apiCall('POST', '/api/customers', nc).then(function(saved) {
@@ -1664,13 +1673,16 @@
         function openUserManagement() {
             var modal = document.getElementById('userManagementModal');
             if (!modal) { showToast('Modal nicht gefunden!', 'error'); return; }
-            // Show modal immediately, load users
+            var list = document.getElementById('userList');
+            if (list) list.innerHTML = '<p style="color:var(--text-muted);padding:1rem">⏳ Lade Benutzer...</p>';
             modal.classList.add('active');
             apiCall('GET', '/api/users').then(function(data) {
+                console.log('Users loaded:', data);
                 renderUserList(data);
             }).catch(function(e) { 
-                showToast('Fehler: ' + (e.message||'unbekannt'), 'error'); 
-                console.error('openUserManagement error:', e);
+                var list2 = document.getElementById('userList');
+                if (list2) list2.innerHTML = '<p style="color:var(--danger);padding:1rem">❌ Fehler: ' + escHtml(e.message||'unbekannt') + '</p>';
+                showToast('Fehler beim Laden der Benutzer', 'error'); 
             });
         }
 
@@ -1712,8 +1724,10 @@
             if (!confirm(username + ' wirklich löschen?')) return;
             apiCall('DELETE','/api/users/'+username).then(function() {
                 return apiCall('GET','/api/users');
-            }).then(function(data) { renderUserList(data); showToast('User gelöscht','success'); })
-            .catch(function() { showToast('Fehler','error'); });
+            }).then(function(data) { 
+                renderUserList(data); 
+                showToast(username + ' gelöscht','success'); 
+            }).catch(function(e) { showToast('Fehler: '+(e.message||''),'error'); });
         }
 
         function resetUserPassword(username) {
@@ -1767,11 +1781,23 @@
             var avatarEl = document.getElementById('userAvatar');
             if (avatarEl) avatarEl.textContent = currentUser.name.charAt(0).toUpperCase();
 
-            // Show buttons based on role
+            // Role-based button visibility
+            var role = currentUser.role;
+            var isAdmin = role === 'admin';
+            var isManager = role === 'manager';
+            var isUser = role === 'user';
+
             var newBtn = document.getElementById('newCustomerBtn');
-            if (newBtn && (currentUser.role === 'admin' || currentUser.role === 'manager')) newBtn.style.display = 'inline-flex';
+            if (newBtn) newBtn.style.display = (isAdmin || isManager) ? 'inline-flex' : 'none';
+
             var umBtn = document.getElementById('userManagementBtn');
-            if (umBtn && currentUser.role === 'admin') umBtn.style.display = 'inline-flex';
+            if (umBtn) umBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+
+            var exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) exportBtn.style.display = (isAdmin || isManager) ? 'inline-flex' : 'none';
+
+            var importBtn = document.getElementById('importBtn');
+            if (importBtn) importBtn.style.display = (isAdmin || isManager) ? 'inline-flex' : 'none';
 
             // Load customers
             apiCall('GET', '/api/customers').then(function(data) {
