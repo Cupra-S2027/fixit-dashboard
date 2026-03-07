@@ -571,6 +571,38 @@ export default {
       return json(request, { success: true });
     }
 
+    if (parts[1] === 'users' && parts[2] && !parts[3] && request.method === 'PUT') {
+      if (!isAdmin) return json(request, { error: 'Keine Berechtigung' }, 403);
+      var targetUpdate = decodeURIComponent(parts[2]);
+      if (!users[targetUpdate]) return json(request, { error: 'User nicht gefunden' }, 404);
+      var ub = await parseJson(request);
+      if (!ub) return json(request, { error: 'Ungültige Daten' }, 400);
+
+      var nextRole = sanitizeString(ub.role || users[targetUpdate].role, 24).toLowerCase();
+      if (nextRole !== 'admin' && nextRole !== 'manager' && nextRole !== 'user') nextRole = 'user';
+      if (targetUpdate === 'admin') nextRole = 'admin';
+      var nextScopeType = normalizeScopeType(ub.scopeType || users[targetUpdate].scopeType, nextRole);
+      var nextName = sanitizeString(ub.name || users[targetUpdate].name || targetUpdate, 120);
+      var nextPartnerKey = sanitizeString(ub.scopePartnerKey || '', 80);
+      var nextTenantKey = sanitizeString(ub.scopeTenantKey || '', 80);
+
+      if (nextScopeType === 'partner' && !nextPartnerKey) {
+        return json(request, { error: 'Partner-Key erforderlich' }, 400);
+      }
+      if (nextScopeType === 'tenant' && !nextTenantKey) {
+        return json(request, { error: 'Tenant-Key erforderlich' }, 400);
+      }
+
+      users[targetUpdate].name = nextName;
+      users[targetUpdate].role = nextRole;
+      users[targetUpdate].scopeType = nextScopeType;
+      users[targetUpdate].scopePartnerKey = nextScopeType === 'partner' ? nextPartnerKey : '';
+      users[targetUpdate].scopeTenantKey = nextScopeType === 'tenant' ? nextTenantKey : '';
+
+      await env.KV.put('users', JSON.stringify(users));
+      return json(request, { success: true });
+    }
+
     if (parts[1] === 'users' && parts[2] && parts[3] === 'password' && request.method === 'PUT') {
       var target = decodeURIComponent(parts[2]);
       if (!isAdmin && username !== target) return json(request, { error: 'Keine Berechtigung' }, 403);

@@ -1153,6 +1153,7 @@
         var activePanelCustomerId = null;
         var panelEditMode = false;
         var activePanelTab = 'info';
+        var userDirectory = {};
 
         // === API ===
         function logoutToLogin() {
@@ -1837,6 +1838,8 @@
                 list.innerHTML = '<p style="color:var(--text-muted);padding:1rem">Keine Benutzer gefunden</p>';
                 return;
             }
+            userDirectory = {};
+            arr.forEach(function(u) { userDirectory[u.username] = u; });
             list.innerHTML = arr.map(function(u) {
                 var initial = (u.name||u.username||'?').charAt(0).toUpperCase();
                 var scopeTxt = (u.scopeType || getDefaultScopeForRole(u.role));
@@ -1849,6 +1852,7 @@
                     '<div style="font-size:0.8rem;color:var(--text-muted)">' + escHtml(u.username) + ' · ' + escHtml(u.role) + '</div>' +
                     '<div style="font-size:0.76rem;color:var(--primary);margin-top:0.15rem">Scope: ' + escHtml(scopeTxt) + '</div>' +
                     '</div>' +
+                    '<button class="btn btn-sm" onclick="editUserScopeByUsername(&#39;' + u.username + '&#39;)" title="Bearbeiten" style="padding:0.3rem 0.6rem">✏️</button>' +
                     '<button class="btn btn-sm" onclick="resetUserPassword(&#39;' + u.username + '&#39;)" title="Passwort setzen" style="padding:0.3rem 0.6rem">🔑</button>' +
                     (u.username !== 'admin' ? '<button class="btn btn-sm btn-danger" onclick="deleteUser(&#39;' + u.username + '&#39;)" title="Löschen" style="padding:0.3rem 0.6rem">🗑️</button>' : '') +
                     '</div>';
@@ -1897,6 +1901,63 @@
                 renderUserList(data); 
                 showToast(username + ' gelöscht','success'); 
             }).catch(function(e) { showToast('Fehler: '+(e.message||''),'error'); });
+        }
+
+        function editUserScopeByUsername(username) {
+            var u = userDirectory[username];
+            if (!u) { showToast('Userdaten nicht gefunden', 'error'); return; }
+            return editUserScope(username, u.name || username, u.role || 'user', u.scopeType || '', u.scopePartnerKey || '', u.scopeTenantKey || '');
+        }
+
+        function editUserScope(username, name, role, scopeType, scopePartnerKey, scopeTenantKey) {
+            var nextName = prompt('Anzeigename für ' + username + ':', name || username);
+            if (nextName === null) return;
+
+            var nextRole = prompt('Rolle (admin|manager|user):', role || 'user');
+            if (nextRole === null) return;
+            nextRole = (nextRole || '').trim().toLowerCase();
+            if (nextRole !== 'admin' && nextRole !== 'manager' && nextRole !== 'user') {
+                showToast('Ungültige Rolle', 'error');
+                return;
+            }
+
+            var defaultScope = nextRole === 'admin' ? 'all' : (nextRole === 'manager' ? 'partner' : 'self');
+            var nextScopeType = prompt('Scope (all|partner|tenant|self):', (scopeType || defaultScope));
+            if (nextScopeType === null) return;
+            nextScopeType = (nextScopeType || '').trim().toLowerCase();
+            if (nextRole === 'admin') nextScopeType = 'all';
+            if (nextRole === 'manager' && nextScopeType !== 'partner' && nextScopeType !== 'tenant') nextScopeType = 'partner';
+            if (nextRole === 'user' && nextScopeType !== 'self' && nextScopeType !== 'tenant') nextScopeType = 'self';
+
+            var nextPartnerKey = '';
+            var nextTenantKey = '';
+            if (nextScopeType === 'partner') {
+                nextPartnerKey = prompt('Partner-Key:', scopePartnerKey || '');
+                if (nextPartnerKey === null) return;
+                nextPartnerKey = nextPartnerKey.trim();
+                if (!nextPartnerKey) { showToast('Partner-Key fehlt', 'error'); return; }
+            }
+            if (nextScopeType === 'tenant') {
+                nextTenantKey = prompt('Tenant-Key:', scopeTenantKey || '');
+                if (nextTenantKey === null) return;
+                nextTenantKey = nextTenantKey.trim();
+                if (!nextTenantKey) { showToast('Tenant-Key fehlt', 'error'); return; }
+            }
+
+            apiCall('PUT', '/api/users/' + encodeURIComponent(username), {
+                name: nextName.trim() || username,
+                role: nextRole,
+                scopeType: nextScopeType,
+                scopePartnerKey: nextPartnerKey,
+                scopeTenantKey: nextTenantKey
+            }).then(function() {
+                return apiCall('GET', '/api/users');
+            }).then(function(data) {
+                renderUserList(data);
+                showToast('User aktualisiert', 'success');
+            }).catch(function(e) {
+                showToast('Fehler: ' + (e.message || 'unbekannt'), 'error');
+            });
         }
 
         function resetUserPassword(username) {
