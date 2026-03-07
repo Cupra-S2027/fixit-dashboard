@@ -1133,6 +1133,10 @@
                 <div id="userList"></div>
                     <div class="users-list" id="usersList"></div>
                 </div>
+                <div style="margin-top:1.5rem">
+                    <h3 style="margin-bottom: 0.75rem; color: var(--primary);">Letzte Admin-Aktionen</h3>
+                    <div id="auditList" style="border:1px solid var(--border);border-radius:10px;max-height:220px;overflow:auto;padding:0.5rem;background:var(--surface-light)"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1852,11 +1856,14 @@
             if (!modal) { showToast('Modal nicht gefunden!', 'error'); return; }
             var list = document.getElementById('userList');
             if (list) list.innerHTML = '<p style="color:var(--text-muted);padding:1rem">⏳ Lade Benutzer...</p>';
+            var auditList = document.getElementById('auditList');
+            if (auditList) auditList.innerHTML = '<p style="color:var(--text-muted);padding:0.5rem">⏳ Lade Audit-Logs...</p>';
             modal.classList.add('active');
             syncScopeFields();
             apiCall('GET', '/api/users').then(function(data) {
                 console.log('Users loaded:', data);
                 renderUserList(data);
+                loadAuditLogs();
             }).catch(function(e) { 
                 var list2 = document.getElementById('userList');
                 if (list2) list2.innerHTML = '<p style="color:var(--danger);padding:1rem">❌ Fehler: ' + escHtml(e.message||'unbekannt') + '</p>';
@@ -1866,6 +1873,32 @@
 
         function closeUserManagement() {
             document.getElementById('userManagementModal').classList.remove('active');
+        }
+
+        function loadAuditLogs() {
+            apiCall('GET', '/api/audit?limit=30').then(function(rows) {
+                renderAuditLogs(rows);
+            }).catch(function() {
+                var box = document.getElementById('auditList');
+                if (box) box.innerHTML = '<p style="color:var(--danger);padding:0.5rem">Audit-Logs konnten nicht geladen werden.</p>';
+            });
+        }
+
+        function renderAuditLogs(rows) {
+            var box = document.getElementById('auditList');
+            if (!box) return;
+            var arr = Array.isArray(rows) ? rows : [];
+            if (!arr.length) {
+                box.innerHTML = '<p style="color:var(--text-muted);padding:0.5rem">Noch keine Einträge.</p>';
+                return;
+            }
+            box.innerHTML = arr.map(function(x) {
+                var ts = x.at ? new Date(x.at).toLocaleString('de-DE') : '—';
+                return '<div style="padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">' +
+                    '<div style="font-size:0.78rem;color:var(--text-muted)">' + escHtml(ts) + '</div>' +
+                    '<div style="font-size:0.86rem;color:var(--text)"><strong>' + escHtml(x.actor || 'system') + '</strong> · ' + escHtml(x.action || 'event') + ' · ' + escHtml(x.target || '') + '</div>' +
+                    '</div>';
+            }).join('');
         }
 
         function renderUserList(data) {
@@ -1942,7 +1975,7 @@
                 pscope.value = getDefaultScopeForRole(prole.value);
                 syncScopeFields();
                 return apiCall('GET','/api/users');
-            }).then(function(data) { renderUserList(data); showToast('User angelegt!','success'); })
+            }).then(function(data) { renderUserList(data); loadAuditLogs(); showToast('User angelegt!','success'); })
             .catch(function(e) { showToast('Fehler: ' + (e.message||'unbekannt'),'error'); });
         }
 
@@ -1952,6 +1985,7 @@
                 return apiCall('GET','/api/users');
             }).then(function(data) { 
                 renderUserList(data); 
+                loadAuditLogs();
                 showToast(username + ' gelöscht','success'); 
             }).catch(function(e) { showToast('Fehler: '+(e.message||''),'error'); });
         }
@@ -2025,6 +2059,7 @@
             }).then(function(data) {
                 renderUserList(data);
                 closeEditUserModal();
+                loadAuditLogs();
                 showToast('User aktualisiert', 'success');
             }).catch(function(e) {
                 showToast('Fehler: ' + (e.message || 'unbekannt'), 'error');
@@ -2035,6 +2070,7 @@
             var pwd = prompt('Temporäres Passwort für ' + username + ':');
             if (!pwd) return;
             apiCall('PUT','/api/users/'+username+'/password',{password:pwd,adminReset:true}).then(function() {
+                loadAuditLogs();
                 showToast('Passwort gesetzt!','success');
             }).catch(function() { showToast('Fehler','error'); });
         }

@@ -199,6 +199,27 @@ async function getCustomers(KV) {
   return data ? JSON.parse(data) : [];
 }
 
+async function appendAuditLog(KV, actor, action, target, details) {
+  var raw = await KV.get('audit_logs');
+  var logs = raw ? JSON.parse(raw) : [];
+  logs.unshift({
+    at: new Date().toISOString(),
+    actor: sanitizeString(actor || 'system', 64),
+    action: sanitizeString(action || 'unknown', 80),
+    target: sanitizeString(target || '', 140),
+    details: details || {}
+  });
+  if (logs.length > 250) logs = logs.slice(0, 250);
+  await KV.put('audit_logs', JSON.stringify(logs));
+}
+
+async function getAuditLogs(KV, limit) {
+  var raw = await KV.get('audit_logs');
+  var logs = raw ? JSON.parse(raw) : [];
+  var max = sanitizeNumber(limit, 1, 100) || 30;
+  return logs.slice(0, max);
+}
+
 function normalizeDashboardStatus(raw) {
   var s = (raw || '').toString().toLowerCase().trim();
   if (s === 'coming_soon' || s === 'pending') return 'pending';
@@ -481,6 +502,12 @@ export default {
       });
     }
 
+    if (path === '/api/audit' && request.method === 'GET') {
+      if (!isAdmin) return json(request, { error: 'Keine Berechtigung' }, 403);
+      var lim = new URL(request.url).searchParams.get('limit');
+      return json(request, await getAuditLogs(env.KV, lim));
+    }
+
     if (path === '/api/customers' && request.method === 'GET') {
       var customersRead = await getCustomers(env.KV);
       var scopedRead = customersRead.filter(function(c) { return canReadCustomer(scope, c); });
@@ -496,6 +523,7 @@ export default {
       nc.id = customers.length > 0 ? Math.max.apply(null, customers.map(function(c) { return c.id; })) + 1 : 1;
       customers.push(nc);
       await env.KV.put('customers', JSON.stringify(customers));
+      await appendAuditLog(env.KV, username, 'customer.create', String(nc.id), { name: nc.name, scopeType: scope.scopeType });
       return json(request, sanitizeCustomerForRead(nc, me ? me.role : ''));
     }
 
@@ -510,6 +538,7 @@ export default {
       if (!upd) return json(request, { error: 'Ungültige Daten' }, 400);
       customers[idx] = Object.assign({}, restrictCustomerWrite(scope, sanitizeCustomerInput(upd, customers[idx])), { id: id });
       await env.KV.put('customers', JSON.stringify(customers));
+      await appendAuditLog(env.KV, username, 'customer.update', String(id), { name: customers[idx].name, scopeType: scope.scopeType });
       return json(request, sanitizeCustomerForRead(customers[idx], me ? me.role : ''));
     }
 
@@ -519,6 +548,7 @@ export default {
       var customers = await getCustomers(env.KV);
       customers = customers.filter(function(c) { return c.id !== id; });
       await env.KV.put('customers', JSON.stringify(customers));
+      await appendAuditLog(env.KV, username, 'customer.delete', String(id), {});
       return json(request, { success: true });
     }
 
@@ -559,6 +589,7 @@ export default {
         forcePasswordChange: true
       };
       await env.KV.put('users', JSON.stringify(users));
+      await appendAuditLog(env.KV, username, 'user.create', un, { role: rn, scopeType: scopeType });
       return json(request, { success: true });
     }
 
@@ -568,6 +599,7 @@ export default {
       if (target === 'admin') return json(request, { error: 'Admin kann nicht gelöscht werden' }, 400);
       delete users[target];
       await env.KV.put('users', JSON.stringify(users));
+      await appendAuditLog(env.KV, username, 'user.delete', target, {});
       return json(request, { success: true });
     }
 
@@ -600,6 +632,12 @@ export default {
       users[targetUpdate].scopeTenantKey = nextScopeType === 'tenant' ? nextTenantKey : '';
 
       await env.KV.put('users', JSON.stringify(users));
+      await appendAuditLog(env.KV, username, 'user.update', targetUpdate, {
+        role: nextRole,
+        scopeType: nextScopeType,
+        scopePartnerKey: users[targetUpdate].scopePartnerKey || '',
+        scopeTenantKey: users[targetUpdate].scopeTenantKey || ''
+      });
       return json(request, { success: true });
     }
 
@@ -616,6 +654,7 @@ export default {
       users[target].passwordChangedAt = new Date().toISOString();
       users[target].forcePasswordChange = (isAdmin && username !== target) ? true : false;
       await env.KV.put('users', JSON.stringify(users));
+      await appendAuditLog(env.KV, username, 'user.password.reset', target, { adminReset: !!(isAdmin && username !== target) });
       return json(request, { success: true });
     }
 
