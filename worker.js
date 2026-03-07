@@ -241,9 +241,14 @@ function sanitizeCustomerForRead(customer, role) {
 
 function normalizeScopeType(value, role) {
   var raw = sanitizeString(value || '', 24).toLowerCase();
-  if (raw === 'all' || raw === 'partner' || raw === 'tenant' || raw === 'self') return raw;
-  if (role === 'admin') return 'all';
-  if (role === 'manager') return 'partner';
+  if (role === 'admin') {
+    return raw === 'all' ? 'all' : 'all';
+  }
+  if (role === 'manager') {
+    if (raw === 'partner' || raw === 'tenant') return raw;
+    return 'partner';
+  }
+  if (raw === 'tenant' || raw === 'self') return raw;
   return 'self';
 }
 

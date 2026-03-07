@@ -1106,11 +1106,21 @@
                     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem;">
                         <input type="text" id="newUsername" placeholder="Benutzername" class="form-input">
                         <input type="text" id="newName" placeholder="Anzeigename" class="form-input">
-                        <select id="newRole" class="form-input">
+                        <select id="newRole" class="form-input" onchange="syncScopeFields()">
                             <option value="user">User</option>
                             <option value="manager">Manager</option>
                             <option value="admin">Admin</option>
                         </select>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:1rem;margin-bottom:1rem">
+                        <select id="newScopeType" class="form-input" onchange="syncScopeFields()">
+                            <option value="self">Scope: Self</option>
+                            <option value="tenant">Scope: Tenant</option>
+                            <option value="partner">Scope: Partner</option>
+                            <option value="all">Scope: All</option>
+                        </select>
+                        <input type="text" id="newScopePartnerKey" class="form-input" placeholder="Partner Key (bei Partner-Scopes)">
+                        <input type="text" id="newScopeTenantKey" class="form-input" placeholder="Tenant Key (bei Tenant-Scopes)">
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 1rem;">
                         <input type="password" id="newPassword" placeholder="Passwort" class="form-input">
@@ -1753,12 +1763,43 @@
         }
 
         // === USER MANAGEMENT ===
+        function getDefaultScopeForRole(role) {
+            if (role === 'admin') return 'all';
+            if (role === 'manager') return 'partner';
+            return 'self';
+        }
+
+        function syncScopeFields() {
+            var roleEl = document.getElementById('newRole');
+            var scopeEl = document.getElementById('newScopeType');
+            var partnerEl = document.getElementById('newScopePartnerKey');
+            var tenantEl = document.getElementById('newScopeTenantKey');
+            if (!roleEl || !scopeEl || !partnerEl || !tenantEl) return;
+
+            var role = roleEl.value;
+            var scope = scopeEl.value;
+            var allowed = role === 'admin' ? ['all'] : (role === 'manager' ? ['partner', 'tenant'] : ['self', 'tenant']);
+            Array.prototype.forEach.call(scopeEl.options, function(opt) {
+                opt.disabled = allowed.indexOf(opt.value) === -1;
+            });
+            if (allowed.indexOf(scope) === -1) {
+                scope = getDefaultScopeForRole(role);
+                scopeEl.value = scope;
+            }
+
+            partnerEl.disabled = scope !== 'partner';
+            tenantEl.disabled = scope !== 'tenant';
+            if (partnerEl.disabled) partnerEl.value = '';
+            if (tenantEl.disabled) tenantEl.value = '';
+        }
+
         function openUserManagement() {
             var modal = document.getElementById('userManagementModal');
             if (!modal) { showToast('Modal nicht gefunden!', 'error'); return; }
             var list = document.getElementById('userList');
             if (list) list.innerHTML = '<p style="color:var(--text-muted);padding:1rem">⏳ Lade Benutzer...</p>';
             modal.classList.add('active');
+            syncScopeFields();
             apiCall('GET', '/api/users').then(function(data) {
                 console.log('Users loaded:', data);
                 renderUserList(data);
@@ -1782,7 +1823,14 @@
                 arr = data;
             } else if (data && typeof data === 'object') {
                 Object.keys(data).forEach(function(k) {
-                    arr.push({ username: k, name: data[k].name || k, role: data[k].role || 'user' });
+                    arr.push({
+                        username: k,
+                        name: data[k].name || k,
+                        role: data[k].role || 'user',
+                        scopeType: data[k].scopeType || '',
+                        scopePartnerKey: data[k].scopePartnerKey || '',
+                        scopeTenantKey: data[k].scopeTenantKey || ''
+                    });
                 });
             }
             if (arr.length === 0) {
@@ -1791,11 +1839,15 @@
             }
             list.innerHTML = arr.map(function(u) {
                 var initial = (u.name||u.username||'?').charAt(0).toUpperCase();
+                var scopeTxt = (u.scopeType || getDefaultScopeForRole(u.role));
+                if (u.scopePartnerKey) scopeTxt += ' · ' + u.scopePartnerKey;
+                if (u.scopeTenantKey) scopeTxt += ' · ' + u.scopeTenantKey;
                 return '<div style="display:flex;align-items:center;gap:0.75rem;padding:0.8rem;border-bottom:1px solid var(--border)">' +
                     '<div style="width:36px;height:36px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;flex-shrink:0">' + initial + '</div>' +
                     '<div style="flex:1">' +
                     '<div style="font-weight:600;color:var(--text)">' + escHtml(u.name||u.username) + '</div>' +
                     '<div style="font-size:0.8rem;color:var(--text-muted)">' + escHtml(u.username) + ' · ' + escHtml(u.role) + '</div>' +
+                    '<div style="font-size:0.76rem;color:var(--primary);margin-top:0.15rem">Scope: ' + escHtml(scopeTxt) + '</div>' +
                     '</div>' +
                     '<button class="btn btn-sm" onclick="resetUserPassword(&#39;' + u.username + '&#39;)" title="Passwort setzen" style="padding:0.3rem 0.6rem">🔑</button>' +
                     (u.username !== 'admin' ? '<button class="btn btn-sm btn-danger" onclick="deleteUser(&#39;' + u.username + '&#39;)" title="Löschen" style="padding:0.3rem 0.6rem">🗑️</button>' : '') +
@@ -1807,13 +1859,31 @@
             var uname = document.getElementById('newUsername');
             var pname = document.getElementById('newName');
             var prole = document.getElementById('newRole');
+            var pscope = document.getElementById('newScopeType');
+            var pscopePartner = document.getElementById('newScopePartnerKey');
+            var pscopeTenant = document.getElementById('newScopeTenantKey');
             var ppwd = document.getElementById('newPassword');
-            if (!uname||!pname||!prole||!ppwd) return;
+            if (!uname||!pname||!prole||!pscope||!ppwd) return;
             if (!uname.value||!pname.value||!ppwd.value) { showToast('Alle Felder ausfüllen!','error'); return; }
-            var newUserData = {username:uname.value.trim(),name:pname.value.trim(),role:prole.value,password:ppwd.value};
+            var selectedScope = pscope.value || getDefaultScopeForRole(prole.value);
+            if (selectedScope === 'partner' && (!pscopePartner || !pscopePartner.value.trim())) { showToast('Partner-Key fehlt!','error'); return; }
+            if (selectedScope === 'tenant' && (!pscopeTenant || !pscopeTenant.value.trim())) { showToast('Tenant-Key fehlt!','error'); return; }
+            var newUserData = {
+                username: uname.value.trim(),
+                name: pname.value.trim(),
+                role: prole.value,
+                password: ppwd.value,
+                scopeType: selectedScope,
+                scopePartnerKey: pscopePartner ? pscopePartner.value.trim() : '',
+                scopeTenantKey: pscopeTenant ? pscopeTenant.value.trim() : ''
+            };
             if (!newUserData.username || !newUserData.name || !newUserData.password) { showToast('Alle Felder ausfüllen!','error'); return; }
             apiCall('POST','/api/users', newUserData).then(function() {
                 uname.value=''; pname.value=''; ppwd.value='';
+                if (pscopePartner) pscopePartner.value = '';
+                if (pscopeTenant) pscopeTenant.value = '';
+                pscope.value = getDefaultScopeForRole(prole.value);
+                syncScopeFields();
                 return apiCall('GET','/api/users');
             }).then(function(data) { renderUserList(data); showToast('User angelegt!','success'); })
             .catch(function(e) { showToast('Fehler: ' + (e.message||'unbekannt'),'error'); });
@@ -1871,6 +1941,26 @@
         }
 
         // === SHOW DASHBOARD ===
+        function applyRoleVisibility() {
+            var role = currentUser && currentUser.role ? currentUser.role : 'user';
+            var scopeType = currentUser && currentUser.scopeType ? currentUser.scopeType : '';
+            var isAdmin = role === 'admin';
+            var isManager = role === 'manager';
+            var isTenantScopedUser = role === 'user' && scopeType === 'tenant';
+
+            var newBtn = document.getElementById('newCustomerBtn');
+            if (newBtn) newBtn.style.display = (isAdmin || isManager || isTenantScopedUser) ? 'inline-flex' : 'none';
+
+            var umBtn = document.getElementById('userManagementBtn');
+            if (umBtn) umBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+
+            var exportBtn = document.getElementById('exportBtn');
+            if (exportBtn) exportBtn.style.display = (isAdmin || isManager) ? 'inline-flex' : 'none';
+
+            var importBtn = document.getElementById('importBtn');
+            if (importBtn) importBtn.style.display = (isAdmin || isManager || isTenantScopedUser) ? 'inline-flex' : 'none';
+        }
+
         function showDashboard() {
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('dashboard').classList.add('active');
@@ -1881,22 +1971,7 @@
             if (avatarEl) avatarEl.textContent = currentUser.name.charAt(0).toUpperCase();
 
             // Role-based button visibility
-            var role = currentUser.role;
-            var isAdmin = role === 'admin';
-            var isManager = role === 'manager';
-            var isUser = role === 'user';
-
-            var newBtn = document.getElementById('newCustomerBtn');
-            if (newBtn) newBtn.style.display = (isAdmin || isManager) ? 'inline-flex' : 'none';
-
-            var umBtn = document.getElementById('userManagementBtn');
-            if (umBtn) umBtn.style.display = isAdmin ? 'inline-flex' : 'none';
-
-            var exportBtn = document.getElementById('exportBtn');
-            if (exportBtn) exportBtn.style.display = (isAdmin || isManager) ? 'inline-flex' : 'none';
-
-            var importBtn = document.getElementById('importBtn');
-            if (importBtn) importBtn.style.display = (isAdmin || isManager) ? 'inline-flex' : 'none';
+            applyRoleVisibility();
 
             // Load customers
             apiCall('GET', '/api/customers').then(function(data) {
@@ -1912,6 +1987,10 @@
             // Check password
             apiCall('GET', '/api/users/me').then(function(data) {
                 if (!data) return;
+                currentUser.scopeType = data.scopeType || currentUser.scopeType || '';
+                currentUser.scopePartnerKey = data.scopePartnerKey || '';
+                currentUser.scopeTenantKey = data.scopeTenantKey || '';
+                applyRoleVisibility();
                 if (data.forcePasswordChange) {
                     currentUser.forcePasswordChange = true;
                     setTimeout(function() { showPasswordExpiry(true); }, 400);
@@ -1962,6 +2041,7 @@
         // === INIT ===
         window.addEventListener('DOMContentLoaded', function() {
             initDarkMode();
+            syncScopeFields();
 
             // Restore session
             var savedToken = sessionStorage.getItem('fixitToken');
