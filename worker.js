@@ -1,28 +1,170 @@
 // FixiT Dashboard - Cloudflare Worker
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+const ALLOWED_ORIGINS = [
+  'https://fixit-dashboard.cuparius.workers.dev',
+  'https://fixit-dashboard.cupra-s2027.workers.dev',
+  'http://localhost:3000',
+  'http://localhost:3002'
+];
+
+const BASE_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Cache-Control': 'no-store'
+};
+
+const HTML_SECURITY_HEADERS = {
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 };
 
 const GITHUB_HTML = 'https://raw.githubusercontent.com/Cupra-S2027/fixit-dashboard/main/index.html';
 
-function json(data, status) {
+function getCorsHeaders(request) {
+  var origin = request.headers.get('Origin') || '';
+  var allowedOrigin = ALLOWED_ORIGINS.indexOf(origin) !== -1 ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Vary': 'Origin'
+  };
+}
+
+function json(request, data, status) {
   return new Response(JSON.stringify(data), {
     status: status || 200,
-    headers: Object.assign({}, CORS, { 'Content-Type': 'application/json' }),
+    headers: Object.assign({}, BASE_HEADERS, getCorsHeaders(request), { 'Content-Type': 'application/json; charset=utf-8' }),
   });
 }
 
-function makeToken(username) {
-  return btoa(username + ':' + Date.now());
+function b64(input) {
+  return btoa(String.fromCharCode.apply(null, input))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
+function makeToken() {
+  var bytes = crypto.getRandomValues(new Uint8Array(32));
+  return b64(bytes);
+}
+
+async function sha256(input) {
+  var encoded = new TextEncoder().encode(input);
+  var digest = await crypto.subtle.digest('SHA-256', encoded);
+  return b64(new Uint8Array(digest));
+}
+
+function sanitizeString(value, maxLen) {
+  return String(value == null ? '' : value).trim().slice(0, maxLen || 500);
+}
+
+function sanitizeStatus(value) {
+  var s = sanitizeString(value || 'pending', 24).toLowerCase();
+  if (s === 'live' || s === 'onboarding' || s === 'pending' || s === 'offline') return s;
+  return 'pending';
+}
+
+function sanitizeDate(value) {
+  var v = sanitizeString(value, 32);
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '';
+}
+
+function sanitizeNumber(value, min, max) {
+  var n = Number(value);
+  if (!isFinite(n)) return 0;
+  if (typeof min === 'number' && n < min) n = min;
+  if (typeof max === 'number' && n > max) n = max;
+  return n;
+}
+
+function sanitizeCustomerInput(input, existing) {
+  var base = existing ? Object.assign({}, existing) : {};
+  var deckIn = input && input.deck ? input.deck : {};
+  var out = Object.assign(base, {
+    tenantKey: sanitizeString(input.tenantKey || input.erpId || base.tenantKey || '', 80),
+    erpId: sanitizeString(input.erpId || input.tenantKey || base.erpId || '', 80),
+    name: sanitizeString(input.name || base.name || '', 140),
+    status: sanitizeStatus(input.status || base.status || 'pending'),
+    email: sanitizeString(input.email || base.email || '', 160),
+    phone: sanitizeString(input.phone || base.phone || '', 60),
+    goLive: sanitizeDate(input.goLive || base.goLive || ''),
+    contact: sanitizeString(input.contact || base.contact || '', 120),
+    plz: sanitizeString(input.plz || base.plz || '', 20),
+    ort: sanitizeString(input.ort || base.ort || '', 120),
+    category: sanitizeString(input.category || base.category || '', 120),
+    notes: sanitizeString(input.notes || base.notes || '', 2000),
+    portalLink: sanitizeString(input.portalLink || base.portalLink || '', 260),
+    onboardingProgress: sanitizeNumber(input.onboardingProgress == null ? base.onboardingProgress : input.onboardingProgress, 0, 100),
+    onboardingCompleted: !!(input.onboardingCompleted == null ? base.onboardingCompleted : input.onboardingCompleted),
+    mrr: sanitizeNumber(input.mrr == null ? base.mrr : input.mrr, 0, 1000000000),
+    activeContracts: sanitizeNumber(input.activeContracts == null ? base.activeContracts : input.activeContracts, 0, 1000000),
+    fixitTenantId: input.fixitTenantId == null ? base.fixitTenantId : sanitizeNumber(input.fixitTenantId, 0, 1000000000),
+    fixitLeadStatus: sanitizeString(input.fixitLeadStatus || base.fixitLeadStatus || '', 64),
+    fixitOnboardingStatus: sanitizeString(input.fixitOnboardingStatus || base.fixitOnboardingStatus || '', 64),
+    syncedAt: sanitizeString(input.syncedAt || new Date().toISOString(), 40),
+    deck: {
+      verwaltungsart: sanitizeString(deckIn.verwaltungsart || (base.deck || {}).verwaltungsart || '', 400),
+      hinweise: sanitizeString(deckIn.hinweise || (base.deck || {}).hinweise || '', 2000),
+      notfall: sanitizeString(deckIn.notfall || (base.deck || {}).notfall || '', 300),
+      wording: sanitizeString(deckIn.wording || (base.deck || {}).wording || '', 1000),
+      updated: sanitizeString(deckIn.updated || (base.deck || {}).updated || '', 40)
+    }
+  });
+  if (!out.tenantKey && out.erpId) out.tenantKey = out.erpId;
+  if (!out.erpId && out.tenantKey) out.erpId = out.tenantKey;
+  return out;
+}
+
+async function parseJson(request) {
+  try {
+    return await request.json();
+  } catch (_) {
+    return null;
+  }
+}
+
+async function hashPassword(password, salt) {
+  return sha256(salt + ':' + password);
+}
+
+async function createPasswordRecord(password) {
+  var salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+  var hash = await hashPassword(password, salt);
+  return { passwordSalt: salt, passwordHash: hash };
+}
+
+async function verifyPassword(user, inputPassword) {
+  if (!user || !inputPassword) return { ok: false, upgraded: false };
+  if (user.passwordHash && user.passwordSalt) {
+    var calc = await hashPassword(inputPassword, user.passwordSalt);
+    return { ok: calc === user.passwordHash, upgraded: false };
+  }
+  if (user.password && user.password === inputPassword) {
+    var rec = await createPasswordRecord(inputPassword);
+    user.passwordHash = rec.passwordHash;
+    user.passwordSalt = rec.passwordSalt;
+    delete user.password;
+    return { ok: true, upgraded: true };
+  }
+  return { ok: false, upgraded: false };
 }
 
 async function getUsers(KV) {
   var data = await KV.get('users');
   if (!data) {
-    var def = { admin: { password: 'fixit2026', role: 'admin', name: 'Admin', forcePasswordChange: false } };
+    var adminRec = await createPasswordRecord('fixit2026');
+    var def = {
+      admin: {
+        passwordHash: adminRec.passwordHash,
+        passwordSalt: adminRec.passwordSalt,
+        role: 'admin',
+        name: 'Admin',
+        forcePasswordChange: false
+      }
+    };
     await KV.put('users', JSON.stringify(def));
     return def;
   }
@@ -85,54 +227,69 @@ function integrationAuthorized(request, env) {
 
 export default {
   async fetch(request, env) {
-    var url = new URL(request.url);
-    var path = url.pathname;
-    var parts = (path.startsWith('/') ? path.slice(1) : path).split('/');
+    try {
+      var url = new URL(request.url);
+      var path = url.pathname;
+      var parts = (path.startsWith('/') ? path.slice(1) : path).split('/');
 
     if (request.method === 'OPTIONS') {
-      return new Response(null, { headers: CORS });
+      return new Response(null, { headers: Object.assign({}, BASE_HEADERS, getCorsHeaders(request)) });
     }
 
     if (path === '/' || path === '') {
       var resp = await fetch(GITHUB_HTML);
       var html = await resp.text();
-      return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+      return new Response(html, {
+        headers: Object.assign({}, BASE_HEADERS, HTML_SECURITY_HEADERS, { 'Content-Type': 'text/html; charset=utf-8' })
+      });
     }
 
     if (path === '/api/login' && request.method === 'POST') {
-      var b = await request.json();
-      var users = await getUsers(env.KV);
-      var user = users[b.username];
-      if (user && user.password === b.password) {
-        var tk = makeToken(b.username);
-        var sessions = JSON.parse(await env.KV.get('sessions') || '{}');
-        sessions[tk] = { username: b.username, expires: Date.now() + 86400000 };
-        await env.KV.put('sessions', JSON.stringify(sessions));
-        return json({ success: true, token: tk, user: { username: b.username, name: user.name, role: user.role, forcePasswordChange: user.forcePasswordChange || false } });
+      var b = await parseJson(request);
+      if (!b || !b.username || !b.password) {
+        return json(request, { success: false, error: 'Ungültige Anfrage' }, 400);
       }
-      return json({ success: false, error: 'Ungültige Anmeldedaten' }, 401);
+      var users = await getUsers(env.KV);
+      var cleanUsername = sanitizeString(b.username, 64);
+      var user = users[cleanUsername];
+      var verify = await verifyPassword(user, String(b.password));
+      if (user && verify.ok) {
+        var tk = makeToken();
+        var sessions = JSON.parse(await env.KV.get('sessions') || '{}');
+        sessions[tk] = { username: cleanUsername, expires: Date.now() + 86400000 };
+        await env.KV.put('sessions', JSON.stringify(sessions));
+        if (verify.upgraded) {
+          users[cleanUsername] = user;
+          await env.KV.put('users', JSON.stringify(users));
+        }
+        return json(request, { success: true, token: tk, user: { username: cleanUsername, name: user.name, role: user.role, forcePasswordChange: user.forcePasswordChange || false } });
+      }
+      return json(request, { success: false, error: 'Ungültige Anmeldedaten' }, 401);
     }
 
     // Integration Endpoint for FixiT backend lifecycle sync
     if (path === '/api/integrations/fixit/sync' && request.method === 'POST') {
       if (!integrationAuthorized(request, env)) {
-        return json({ error: 'Nicht autorisiert' }, 401);
+        return json(request, { error: 'Nicht autorisiert' }, 401);
       }
 
-      var payload = await request.json();
+      var payload = await parseJson(request);
+      if (!payload || typeof payload !== 'object') {
+        return json(request, { error: 'Ungültige Sync-Daten' }, 400);
+      }
       var tenant = payload.tenant || {};
       var onboarding = payload.onboarding || {};
       var commercial = payload.commercial || {};
       var dashboardFields = payload.dashboard_fields || {};
       var stage = normalizeDashboardStatus(dashboardFields.status || payload.stage || tenant.status || '');
-      var tenantKey = dashboardFields.erp_id || tenant.tenant_key || ('TENANT-' + (tenant.id || Date.now()));
+      var tenantKey = sanitizeString(dashboardFields.erp_id || tenant.tenant_key || ('TENANT-' + (tenant.id || Date.now())), 80);
 
       var customers = await getCustomers(env.KV);
       var idx = customers.findIndex(function(c) {
         return c.tenantKey === tenantKey || c.erpId === tenantKey;
       });
 
-      var syncFields = {
+      var syncFields = sanitizeCustomerInput({
         tenantKey: tenantKey,
         erpId: tenantKey,
         name: dashboardFields.name || tenant.company_name || tenantKey,
@@ -176,7 +333,7 @@ export default {
         fixitLeadStatus: tenant.lead_status || '',
         fixitOnboardingStatus: tenant.onboarding_status || '',
         syncedAt: new Date().toISOString()
-      };
+      }, null);
 
       var out;
       if (idx === -1) {
@@ -203,16 +360,16 @@ export default {
       }
 
       await env.KV.put('customers', JSON.stringify(customers));
-      return json({ success: true, customer: out, mode: idx === -1 ? 'created' : 'updated' });
+      return json(request, { success: true, customer: out, mode: idx === -1 ? 'created' : 'updated' });
     }
 
     var auth = request.headers.get('Authorization');
     var tk = auth ? auth.replace('Bearer ', '') : null;
-    if (!tk) return json({ error: 'Nicht autorisiert' }, 401);
+    if (!tk) return json(request, { error: 'Nicht autorisiert' }, 401);
 
     var sessions = JSON.parse(await env.KV.get('sessions') || '{}');
     var session = sessions[tk];
-    if (!session || session.expires < Date.now()) return json({ error: 'Session abgelaufen' }, 401);
+    if (!session || session.expires < Date.now()) return json(request, { error: 'Session abgelaufen' }, 401);
 
     var username = session.username;
     var users = await getUsers(env.KV);
@@ -230,82 +387,104 @@ export default {
         var daysSince = (Date.now() - new Date(me.passwordChangedAt).getTime()) / 86400000;
         if (daysSince > 14) expired = true;
       }
-      return json({ username: username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null, forcePasswordChange: force, passwordExpired: expired });
+      return json(request, { username: username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null, forcePasswordChange: force, passwordExpired: expired });
     }
 
     if (path === '/api/customers' && request.method === 'GET') {
       var customersRead = await getCustomers(env.KV);
-      return json(customersRead.map(function(c) { return sanitizeCustomerForRead(c, me ? me.role : ''); }));
+      return json(request, customersRead.map(function(c) { return sanitizeCustomerForRead(c, me ? me.role : ''); }));
     }
 
     if (path === '/api/customers' && request.method === 'POST') {
-      if (!canManageCustomers) return json({ error: 'Keine Berechtigung' }, 403);
+      if (!canManageCustomers) return json(request, { error: 'Keine Berechtigung' }, 403);
       var customers = await getCustomers(env.KV);
-      var nc = await request.json();
+      var ncIn = await parseJson(request);
+      if (!ncIn || !ncIn.name) return json(request, { error: 'Mandantenname fehlt' }, 400);
+      var nc = sanitizeCustomerInput(ncIn, null);
       nc.id = customers.length > 0 ? Math.max.apply(null, customers.map(function(c) { return c.id; })) + 1 : 1;
       customers.push(nc);
       await env.KV.put('customers', JSON.stringify(customers));
-      return json(sanitizeCustomerForRead(nc, me ? me.role : ''));
+      return json(request, sanitizeCustomerForRead(nc, me ? me.role : ''));
     }
 
     if (parts[1] === 'customers' && parts[2] && !parts[3] && request.method === 'PUT') {
-      if (!canManageCustomers) return json({ error: 'Keine Berechtigung' }, 403);
+      if (!canManageCustomers) return json(request, { error: 'Keine Berechtigung' }, 403);
       var id = parseInt(parts[2]);
       var customers = await getCustomers(env.KV);
       var idx = customers.findIndex(function(c) { return c.id === id; });
-      if (idx === -1) return json({ error: 'Nicht gefunden' }, 404);
-      var upd = await request.json();
-      customers[idx] = Object.assign({}, customers[idx], upd, { id: id });
+      if (idx === -1) return json(request, { error: 'Nicht gefunden' }, 404);
+      var upd = await parseJson(request);
+      if (!upd) return json(request, { error: 'Ungültige Daten' }, 400);
+      customers[idx] = Object.assign({}, sanitizeCustomerInput(upd, customers[idx]), { id: id });
       await env.KV.put('customers', JSON.stringify(customers));
-      return json(sanitizeCustomerForRead(customers[idx], me ? me.role : ''));
+      return json(request, sanitizeCustomerForRead(customers[idx], me ? me.role : ''));
     }
 
     if (parts[1] === 'customers' && parts[2] && !parts[3] && request.method === 'DELETE') {
-      if (!isAdmin) return json({ error: 'Keine Berechtigung' }, 403);
+      if (!isAdmin) return json(request, { error: 'Keine Berechtigung' }, 403);
       var id = parseInt(parts[2]);
       var customers = await getCustomers(env.KV);
       customers = customers.filter(function(c) { return c.id !== id; });
       await env.KV.put('customers', JSON.stringify(customers));
-      return json({ success: true });
+      return json(request, { success: true });
     }
 
     if (path === '/api/users' && request.method === 'GET') {
-      if (!isAdmin) return json({ error: 'Keine Berechtigung' }, 403);
+      if (!isAdmin) return json(request, { error: 'Keine Berechtigung' }, 403);
       var safe = {};
       Object.keys(users).forEach(function(k) { safe[k] = { name: users[k].name, role: users[k].role }; });
-      return json(safe);
+      return json(request, safe);
     }
 
     if (path === '/api/users' && request.method === 'POST') {
-      if (!isAdmin) return json({ error: 'Keine Berechtigung' }, 403);
-      var nb = await request.json();
-      if (users[nb.username]) return json({ error: 'Benutzername existiert bereits' }, 400);
-      users[nb.username] = { password: nb.password, name: nb.name, role: nb.role, forcePasswordChange: true };
+      if (!isAdmin) return json(request, { error: 'Keine Berechtigung' }, 403);
+      var nb = await parseJson(request);
+      if (!nb || !nb.username || !nb.password || !nb.name) return json(request, { error: 'Ungültige Benutzerdaten' }, 400);
+      var un = sanitizeString(nb.username, 64);
+      var rn = sanitizeString(nb.role, 24).toLowerCase();
+      if (users[un]) return json(request, { error: 'Benutzername existiert bereits' }, 400);
+      if (rn !== 'admin' && rn !== 'manager' && rn !== 'user') rn = 'user';
+      if (String(nb.password).length < 8) return json(request, { error: 'Passwort zu kurz' }, 400);
+      var pRec = await createPasswordRecord(String(nb.password));
+      users[un] = {
+        passwordHash: pRec.passwordHash,
+        passwordSalt: pRec.passwordSalt,
+        name: sanitizeString(nb.name, 120),
+        role: rn,
+        forcePasswordChange: true
+      };
       await env.KV.put('users', JSON.stringify(users));
-      return json({ success: true });
+      return json(request, { success: true });
     }
 
     if (parts[1] === 'users' && parts[2] && !parts[3] && request.method === 'DELETE') {
-      if (!isAdmin) return json({ error: 'Keine Berechtigung' }, 403);
+      if (!isAdmin) return json(request, { error: 'Keine Berechtigung' }, 403);
       var target = decodeURIComponent(parts[2]);
-      if (target === 'admin') return json({ error: 'Admin kann nicht gelöscht werden' }, 400);
+      if (target === 'admin') return json(request, { error: 'Admin kann nicht gelöscht werden' }, 400);
       delete users[target];
       await env.KV.put('users', JSON.stringify(users));
-      return json({ success: true });
+      return json(request, { success: true });
     }
 
     if (parts[1] === 'users' && parts[2] && parts[3] === 'password' && request.method === 'PUT') {
       var target = decodeURIComponent(parts[2]);
-      if (!isAdmin && username !== target) return json({ error: 'Keine Berechtigung' }, 403);
-      var pb = await request.json();
-      if (!users[target]) return json({ error: 'User nicht gefunden' }, 404);
-      users[target].password = pb.password;
+      if (!isAdmin && username !== target) return json(request, { error: 'Keine Berechtigung' }, 403);
+      var pb = await parseJson(request);
+      if (!users[target]) return json(request, { error: 'User nicht gefunden' }, 404);
+      if (!pb || !pb.password || String(pb.password).length < 8) return json(request, { error: 'Passwort zu kurz' }, 400);
+      var updRec = await createPasswordRecord(String(pb.password));
+      users[target].passwordHash = updRec.passwordHash;
+      users[target].passwordSalt = updRec.passwordSalt;
+      delete users[target].password;
       users[target].passwordChangedAt = new Date().toISOString();
       users[target].forcePasswordChange = (isAdmin && username !== target) ? true : false;
       await env.KV.put('users', JSON.stringify(users));
-      return json({ success: true });
+      return json(request, { success: true });
     }
 
-    return json({ error: 'Route nicht gefunden' }, 404);
+      return json(request, { error: 'Route nicht gefunden' }, 404);
+    } catch (err) {
+      return json(request, { error: 'Interner Serverfehler' }, 500);
+    }
   }
 };
