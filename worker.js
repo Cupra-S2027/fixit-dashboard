@@ -102,8 +102,9 @@ export default {
       var tenant = payload.tenant || {};
       var onboarding = payload.onboarding || {};
       var commercial = payload.commercial || {};
-      var stage = normalizeDashboardStatus(payload.stage || tenant.status || '');
-      var tenantKey = tenant.tenant_key || ('TENANT-' + (tenant.id || Date.now()));
+      var dashboardFields = payload.dashboard_fields || {};
+      var stage = normalizeDashboardStatus(dashboardFields.status || payload.stage || tenant.status || '');
+      var tenantKey = dashboardFields.erp_id || tenant.tenant_key || ('TENANT-' + (tenant.id || Date.now()));
 
       var customers = await getCustomers(env.KV);
       var idx = customers.findIndex(function(c) {
@@ -113,13 +114,16 @@ export default {
       var syncFields = {
         tenantKey: tenantKey,
         erpId: tenantKey,
-        name: tenant.company_name || tenantKey,
+        name: dashboardFields.name || tenant.company_name || tenantKey,
         status: stage,
-        email: tenant.email || '',
-        phone: tenant.phone || '',
-        goLive: formatDateYYYYMMDD(tenant.go_live_date),
-        contact: '',
-        category: 'FixiT Sync',
+        email: dashboardFields.email || tenant.email || '',
+        phone: dashboardFields.phone || tenant.phone || '',
+        goLive: dashboardFields.go_live || formatDateYYYYMMDD(tenant.go_live_date),
+        contact: dashboardFields.contact || '',
+        plz: dashboardFields.plz || '',
+        ort: dashboardFields.ort || '',
+        category: dashboardFields.verwaltungsart || 'FixiT Sync',
+        notes: dashboardFields.notes || '',
         portalLink: '',
         note1: '',
         note2: '',
@@ -136,6 +140,13 @@ export default {
         note13: '',
         note14: '',
         note15: '',
+        deck: {
+          verwaltungsart: dashboardFields.verwaltungsart || '',
+          hinweise: dashboardFields.hinweise || '',
+          notfall: dashboardFields.notfall || '',
+          wording: '',
+          updated: new Date().toLocaleDateString('de-DE')
+        },
         onboardingProgress: onboarding.progress_percent || 0,
         onboardingCompleted: onboarding.is_completed || false,
         mrr: commercial.monthly_recurring_revenue || 0,
