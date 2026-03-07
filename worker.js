@@ -34,6 +34,34 @@ async function getCustomers(KV) {
   return data ? JSON.parse(data) : [];
 }
 
+function normalizeDashboardStatus(raw) {
+  var s = (raw || '').toString().toLowerCase().trim();
+  if (s === 'coming_soon' || s === 'pending') return 'pending';
+  if (s === 'onboarding') return 'onboarding';
+  if (s === 'live' || s === 'active') return 'live';
+  if (s === 'offline') return 'offline';
+  return 'onboarding';
+}
+
+function formatDateYYYYMMDD(isoDate) {
+  if (!isoDate) return '';
+  var d = new Date(isoDate);
+  if (isNaN(d.getTime())) return '';
+  var y = d.getUTCFullYear();
+  var m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  var day = String(d.getUTCDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function integrationAuthorized(request, env) {
+  var expected = (env.FIXIT_SYNC_TOKEN || '').trim();
+  if (!expected) return false;
+  var auth = request.headers.get('Authorization') || '';
+  if (!auth.startsWith('Bearer ')) return false;
+  var provided = auth.slice(7).trim();
+  return provided === expected;
+}
+
 export default {
   async fetch(request, env) {
     var url = new URL(request.url);
@@ -62,6 +90,74 @@ export default {
         return json({ success: true, token: tk, user: { username: b.username, name: user.name, role: user.role, forcePasswordChange: user.forcePasswordChange || false } });
       }
       return json({ success: false, error: 'Ungültige Anmeldedaten' }, 401);
+    }
+
+    // Integration Endpoint for FixiT backend lifecycle sync
+    if (path === '/api/integrations/fixit/sync' && request.method === 'POST') {
+      if (!integrationAuthorized(request, env)) {
+        return json({ error: 'Nicht autorisiert' }, 401);
+      }
+
+      var payload = await request.json();
+      var tenant = payload.tenant || {};
+      var onboarding = payload.onboarding || {};
+      var commercial = payload.commercial || {};
+      var stage = normalizeDashboardStatus(payload.stage || tenant.status || '');
+      var tenantKey = tenant.tenant_key || ('TENANT-' + (tenant.id || Date.now()));
+
+      var customers = await getCustomers(env.KV);
+      var idx = customers.findIndex(function(c) {
+        return c.tenantKey === tenantKey || c.erpId === tenantKey;
+      });
+
+      var syncFields = {
+        tenantKey: tenantKey,
+        erpId: tenantKey,
+        name: tenant.company_name || tenantKey,
+        status: stage,
+        email: tenant.email || '',
+        phone: tenant.phone || '',
+        goLive: formatDateYYYYMMDD(tenant.go_live_date),
+        contact: '',
+        category: 'FixiT Sync',
+        portalLink: '',
+        note1: '',
+        note2: '',
+        note3: '',
+        note4: '',
+        note5: '',
+        note6: '',
+        note7: '',
+        note8: '',
+        note9: '',
+        note10: '',
+        note11: '',
+        note12: '',
+        note13: '',
+        note14: '',
+        note15: '',
+        onboardingProgress: onboarding.progress_percent || 0,
+        onboardingCompleted: onboarding.is_completed || false,
+        mrr: commercial.monthly_recurring_revenue || 0,
+        activeContracts: commercial.active_contract_count || 0,
+        fixitTenantId: tenant.id || null,
+        fixitLeadStatus: tenant.lead_status || '',
+        fixitOnboardingStatus: tenant.onboarding_status || '',
+        syncedAt: new Date().toISOString()
+      };
+
+      var out;
+      if (idx === -1) {
+        syncFields.id = customers.length > 0 ? Math.max.apply(null, customers.map(function(c) { return c.id; })) + 1 : 1;
+        out = syncFields;
+        customers.push(out);
+      } else {
+        out = Object.assign({}, customers[idx], syncFields, { id: customers[idx].id });
+        customers[idx] = out;
+      }
+
+      await env.KV.put('customers', JSON.stringify(customers));
+      return json({ success: true, customer: out, mode: idx === -1 ? 'created' : 'updated' });
     }
 
     var auth = request.headers.get('Authorization');
