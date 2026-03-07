@@ -1137,6 +1137,58 @@
         </div>
     </div>
 
+    <div class="modal" id="editUserModal">
+        <div class="modal-content" style="max-width:640px">
+            <div class="modal-header">
+                <h2 class="modal-title">Benutzer bearbeiten</h2>
+                <button class="close-btn" onclick="closeEditUserModal()">×</button>
+            </div>
+            <div style="display:grid;gap:1rem">
+                <div class="panel-field">
+                    <label>Benutzername</label>
+                    <input type="text" id="editUsername" class="form-input" disabled>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1rem">
+                    <div class="panel-field">
+                        <label>Anzeigename</label>
+                        <input type="text" id="editName" class="form-input">
+                    </div>
+                    <div class="panel-field">
+                        <label>Rolle</label>
+                        <select id="editRole" class="form-input" onchange="syncEditScopeFields()">
+                            <option value="user">User</option>
+                            <option value="manager">Manager</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+                    <div class="panel-field">
+                        <label>Scope</label>
+                        <select id="editScopeType" class="form-input" onchange="syncEditScopeFields()">
+                            <option value="self">Self</option>
+                            <option value="tenant">Tenant</option>
+                            <option value="partner">Partner</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                    <div class="panel-field">
+                        <label>Partner-Key</label>
+                        <input type="text" id="editScopePartnerKey" class="form-input" placeholder="nur bei Partner Scope">
+                    </div>
+                    <div class="panel-field">
+                        <label>Tenant-Key</label>
+                        <input type="text" id="editScopeTenantKey" class="form-input" placeholder="nur bei Tenant Scope">
+                    </div>
+                </div>
+            </div>
+            <div class="panel-footer" style="margin-top:1.5rem">
+                <button class="btn btn-secondary" onclick="closeEditUserModal()">Abbrechen</button>
+                <button class="btn btn-primary" onclick="saveUserEdit()">Speichern</button>
+            </div>
+        </div>
+    </div>
+
     <input type="file" id="fileInput" style="display: none;" accept=".xlsx,.xls" onchange="handleFileImport(event)">
 
         <script>
@@ -1154,6 +1206,7 @@
         var panelEditMode = false;
         var activePanelTab = 'info';
         var userDirectory = {};
+        var editingUsername = '';
 
         // === API ===
         function logoutToLogin() {
@@ -1852,7 +1905,7 @@
                     '<div style="font-size:0.8rem;color:var(--text-muted)">' + escHtml(u.username) + ' · ' + escHtml(u.role) + '</div>' +
                     '<div style="font-size:0.76rem;color:var(--primary);margin-top:0.15rem">Scope: ' + escHtml(scopeTxt) + '</div>' +
                     '</div>' +
-                    '<button class="btn btn-sm" onclick="editUserScopeByUsername(&#39;' + u.username + '&#39;)" title="Bearbeiten" style="padding:0.3rem 0.6rem">✏️</button>' +
+                    '<button class="btn btn-sm" onclick="openUserEditModal(&#39;' + u.username + '&#39;)" title="Bearbeiten" style="padding:0.3rem 0.6rem">✏️</button>' +
                     '<button class="btn btn-sm" onclick="resetUserPassword(&#39;' + u.username + '&#39;)" title="Passwort setzen" style="padding:0.3rem 0.6rem">🔑</button>' +
                     (u.username !== 'admin' ? '<button class="btn btn-sm btn-danger" onclick="deleteUser(&#39;' + u.username + '&#39;)" title="Löschen" style="padding:0.3rem 0.6rem">🗑️</button>' : '') +
                     '</div>';
@@ -1903,49 +1956,66 @@
             }).catch(function(e) { showToast('Fehler: '+(e.message||''),'error'); });
         }
 
-        function editUserScopeByUsername(username) {
-            var u = userDirectory[username];
-            if (!u) { showToast('Userdaten nicht gefunden', 'error'); return; }
-            return editUserScope(username, u.name || username, u.role || 'user', u.scopeType || '', u.scopePartnerKey || '', u.scopeTenantKey || '');
+        function syncEditScopeFields() {
+            var roleEl = document.getElementById('editRole');
+            var scopeEl = document.getElementById('editScopeType');
+            var partnerEl = document.getElementById('editScopePartnerKey');
+            var tenantEl = document.getElementById('editScopeTenantKey');
+            if (!roleEl || !scopeEl || !partnerEl || !tenantEl) return;
+
+            var role = roleEl.value;
+            var scope = scopeEl.value;
+            var allowed = role === 'admin' ? ['all'] : (role === 'manager' ? ['partner', 'tenant'] : ['self', 'tenant']);
+            Array.prototype.forEach.call(scopeEl.options, function(opt) {
+                opt.disabled = allowed.indexOf(opt.value) === -1;
+            });
+            if (allowed.indexOf(scope) === -1) {
+                scope = getDefaultScopeForRole(role);
+                scopeEl.value = scope;
+            }
+
+            partnerEl.disabled = scope !== 'partner';
+            tenantEl.disabled = scope !== 'tenant';
+            if (partnerEl.disabled) partnerEl.value = '';
+            if (tenantEl.disabled) tenantEl.value = '';
         }
 
-        function editUserScope(username, name, role, scopeType, scopePartnerKey, scopeTenantKey) {
-            var nextName = prompt('Anzeigename für ' + username + ':', name || username);
-            if (nextName === null) return;
+        function openUserEditModal(username) {
+            var u = userDirectory[username];
+            if (!u) { showToast('Userdaten nicht gefunden', 'error'); return; }
+            editingUsername = username;
+            var role = u.role || 'user';
+            var scope = u.scopeType || getDefaultScopeForRole(role);
 
-            var nextRole = prompt('Rolle (admin|manager|user):', role || 'user');
-            if (nextRole === null) return;
-            nextRole = (nextRole || '').trim().toLowerCase();
-            if (nextRole !== 'admin' && nextRole !== 'manager' && nextRole !== 'user') {
-                showToast('Ungültige Rolle', 'error');
-                return;
-            }
+            document.getElementById('editUsername').value = username;
+            document.getElementById('editName').value = u.name || username;
+            document.getElementById('editRole').value = role;
+            document.getElementById('editScopeType').value = scope;
+            document.getElementById('editScopePartnerKey').value = u.scopePartnerKey || '';
+            document.getElementById('editScopeTenantKey').value = u.scopeTenantKey || '';
+            syncEditScopeFields();
+            document.getElementById('editUserModal').classList.add('active');
+        }
 
-            var defaultScope = nextRole === 'admin' ? 'all' : (nextRole === 'manager' ? 'partner' : 'self');
-            var nextScopeType = prompt('Scope (all|partner|tenant|self):', (scopeType || defaultScope));
-            if (nextScopeType === null) return;
-            nextScopeType = (nextScopeType || '').trim().toLowerCase();
-            if (nextRole === 'admin') nextScopeType = 'all';
-            if (nextRole === 'manager' && nextScopeType !== 'partner' && nextScopeType !== 'tenant') nextScopeType = 'partner';
-            if (nextRole === 'user' && nextScopeType !== 'self' && nextScopeType !== 'tenant') nextScopeType = 'self';
+        function closeEditUserModal() {
+            editingUsername = '';
+            document.getElementById('editUserModal').classList.remove('active');
+        }
 
-            var nextPartnerKey = '';
-            var nextTenantKey = '';
-            if (nextScopeType === 'partner') {
-                nextPartnerKey = prompt('Partner-Key:', scopePartnerKey || '');
-                if (nextPartnerKey === null) return;
-                nextPartnerKey = nextPartnerKey.trim();
-                if (!nextPartnerKey) { showToast('Partner-Key fehlt', 'error'); return; }
-            }
-            if (nextScopeType === 'tenant') {
-                nextTenantKey = prompt('Tenant-Key:', scopeTenantKey || '');
-                if (nextTenantKey === null) return;
-                nextTenantKey = nextTenantKey.trim();
-                if (!nextTenantKey) { showToast('Tenant-Key fehlt', 'error'); return; }
-            }
+        function saveUserEdit() {
+            if (!editingUsername) return;
+            var nextName = (document.getElementById('editName').value || '').trim();
+            var nextRole = (document.getElementById('editRole').value || 'user').trim().toLowerCase();
+            var nextScopeType = (document.getElementById('editScopeType').value || getDefaultScopeForRole(nextRole)).trim().toLowerCase();
+            var nextPartnerKey = (document.getElementById('editScopePartnerKey').value || '').trim();
+            var nextTenantKey = (document.getElementById('editScopeTenantKey').value || '').trim();
 
-            apiCall('PUT', '/api/users/' + encodeURIComponent(username), {
-                name: nextName.trim() || username,
+            if (!nextName) { showToast('Anzeigename fehlt', 'error'); return; }
+            if (nextScopeType === 'partner' && !nextPartnerKey) { showToast('Partner-Key fehlt', 'error'); return; }
+            if (nextScopeType === 'tenant' && !nextTenantKey) { showToast('Tenant-Key fehlt', 'error'); return; }
+
+            apiCall('PUT', '/api/users/' + encodeURIComponent(editingUsername), {
+                name: nextName,
                 role: nextRole,
                 scopeType: nextScopeType,
                 scopePartnerKey: nextPartnerKey,
@@ -1954,6 +2024,7 @@
                 return apiCall('GET', '/api/users');
             }).then(function(data) {
                 renderUserList(data);
+                closeEditUserModal();
                 showToast('User aktualisiert', 'success');
             }).catch(function(e) {
                 showToast('Fehler: ' + (e.message || 'unbekannt'), 'error');
