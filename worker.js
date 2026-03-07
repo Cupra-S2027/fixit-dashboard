@@ -88,6 +88,8 @@ function sanitizeCustomerInput(input, existing) {
   var out = Object.assign(base, {
     tenantKey: sanitizeString(input.tenantKey || input.erpId || base.tenantKey || '', 80),
     erpId: sanitizeString(input.erpId || input.tenantKey || base.erpId || '', 80),
+    partnerKey: sanitizeString(input.partnerKey || base.partnerKey || '', 80),
+    ownerUsername: sanitizeString(input.ownerUsername || base.ownerUsername || '', 64),
     name: sanitizeString(input.name || base.name || '', 140),
     status: sanitizeStatus(input.status || base.status || 'pending'),
     email: sanitizeString(input.email || base.email || '', 160),
@@ -237,6 +239,50 @@ function sanitizeCustomerForRead(customer, role) {
   };
 }
 
+function normalizeScopeType(value, role) {
+  var raw = sanitizeString(value || '', 24).toLowerCase();
+  if (raw === 'all' || raw === 'partner' || raw === 'tenant' || raw === 'self') return raw;
+  if (role === 'admin') return 'all';
+  if (role === 'manager') return 'partner';
+  return 'self';
+}
+
+function getUserScope(username, user) {
+  var role = user && user.role ? user.role : 'user';
+  var scopeType = normalizeScopeType(user && user.scopeType, role);
+  return {
+    role: role,
+    scopeType: scopeType,
+    partnerKey: sanitizeString(user && user.scopePartnerKey, 80),
+    tenantKey: sanitizeString(user && user.scopeTenantKey, 80),
+    username: sanitizeString(username || '', 64)
+  };
+}
+
+function canReadCustomer(scope, customer) {
+  if (!scope || !customer) return false;
+  if (scope.scopeType === 'all') return true;
+  if (scope.scopeType === 'partner') return !!scope.partnerKey && customer.partnerKey === scope.partnerKey;
+  if (scope.scopeType === 'tenant') return !!scope.tenantKey && (customer.tenantKey === scope.tenantKey || customer.erpId === scope.tenantKey);
+  return customer.ownerUsername === scope.username;
+}
+
+function restrictCustomerWrite(scope, customer) {
+  var out = Object.assign({}, customer || {});
+  if (scope.scopeType === 'all') return out;
+  if (scope.scopeType === 'partner') {
+    out.partnerKey = scope.partnerKey;
+    return out;
+  }
+  if (scope.scopeType === 'tenant') {
+    out.tenantKey = scope.tenantKey;
+    out.erpId = scope.tenantKey;
+    return out;
+  }
+  out.ownerUsername = scope.username;
+  return out;
+}
+
 function integrationAuthorized(request, env) {
   var expected = (env.FIXIT_SYNC_TOKEN || '').trim();
   if (!expected) return false;
@@ -316,6 +362,7 @@ export default {
       var syncFields = sanitizeCustomerInput({
         tenantKey: tenantKey,
         erpId: tenantKey,
+        partnerKey: dashboardFields.partner_key || tenant.partner_key || '',
         name: dashboardFields.name || tenant.company_name || tenantKey,
         status: stage,
         email: dashboardFields.email || tenant.email || '',
@@ -401,9 +448,11 @@ export default {
       await env.KV.put('users', JSON.stringify(users));
     }
     var me = users[username];
+    if (!me) return json(request, { error: 'Ungültige Session' }, 401);
+    var scope = getUserScope(username, me);
     var isAdmin = me && me.role === 'admin';
     var isManager = me && me.role === 'manager';
-    var canManageCustomers = !!(isAdmin || isManager);
+    var canManageCustomers = !!(isAdmin || isManager || scope.scopeType === 'tenant');
 
     if (path === '/api/users/me' && request.method === 'GET') {
       var force = me.forcePasswordChange || false;
@@ -414,12 +463,23 @@ export default {
         var daysSince = (Date.now() - new Date(me.passwordChangedAt).getTime()) / 86400000;
         if (daysSince > 14) expired = true;
       }
-      return json(request, { username: username, name: me.name, role: me.role, passwordChangedAt: me.passwordChangedAt || null, forcePasswordChange: force, passwordExpired: expired });
+      return json(request, {
+        username: username,
+        name: me.name,
+        role: me.role,
+        scopeType: scope.scopeType,
+        scopePartnerKey: scope.partnerKey,
+        scopeTenantKey: scope.tenantKey,
+        passwordChangedAt: me.passwordChangedAt || null,
+        forcePasswordChange: force,
+        passwordExpired: expired
+      });
     }
 
     if (path === '/api/customers' && request.method === 'GET') {
       var customersRead = await getCustomers(env.KV);
-      return json(request, customersRead.map(function(c) { return sanitizeCustomerForRead(c, me ? me.role : ''); }));
+      var scopedRead = customersRead.filter(function(c) { return canReadCustomer(scope, c); });
+      return json(request, scopedRead.map(function(c) { return sanitizeCustomerForRead(c, me ? me.role : ''); }));
     }
 
     if (path === '/api/customers' && request.method === 'POST') {
@@ -427,7 +487,7 @@ export default {
       var customers = await getCustomers(env.KV);
       var ncIn = await parseJson(request);
       if (!ncIn || !ncIn.name) return json(request, { error: 'Mandantenname fehlt' }, 400);
-      var nc = sanitizeCustomerInput(ncIn, null);
+      var nc = restrictCustomerWrite(scope, sanitizeCustomerInput(ncIn, null));
       nc.id = customers.length > 0 ? Math.max.apply(null, customers.map(function(c) { return c.id; })) + 1 : 1;
       customers.push(nc);
       await env.KV.put('customers', JSON.stringify(customers));
@@ -440,9 +500,10 @@ export default {
       var customers = await getCustomers(env.KV);
       var idx = customers.findIndex(function(c) { return c.id === id; });
       if (idx === -1) return json(request, { error: 'Nicht gefunden' }, 404);
+      if (!canReadCustomer(scope, customers[idx])) return json(request, { error: 'Keine Berechtigung' }, 403);
       var upd = await parseJson(request);
       if (!upd) return json(request, { error: 'Ungültige Daten' }, 400);
-      customers[idx] = Object.assign({}, sanitizeCustomerInput(upd, customers[idx]), { id: id });
+      customers[idx] = Object.assign({}, restrictCustomerWrite(scope, sanitizeCustomerInput(upd, customers[idx])), { id: id });
       await env.KV.put('customers', JSON.stringify(customers));
       return json(request, sanitizeCustomerForRead(customers[idx], me ? me.role : ''));
     }
@@ -459,7 +520,15 @@ export default {
     if (path === '/api/users' && request.method === 'GET') {
       if (!isAdmin) return json(request, { error: 'Keine Berechtigung' }, 403);
       var safe = {};
-      Object.keys(users).forEach(function(k) { safe[k] = { name: users[k].name, role: users[k].role }; });
+      Object.keys(users).forEach(function(k) {
+        safe[k] = {
+          name: users[k].name,
+          role: users[k].role,
+          scopeType: normalizeScopeType(users[k].scopeType, users[k].role),
+          scopePartnerKey: users[k].scopePartnerKey || '',
+          scopeTenantKey: users[k].scopeTenantKey || ''
+        };
+      });
       return json(request, safe);
     }
 
@@ -471,6 +540,7 @@ export default {
       var rn = sanitizeString(nb.role, 24).toLowerCase();
       if (users[un]) return json(request, { error: 'Benutzername existiert bereits' }, 400);
       if (rn !== 'admin' && rn !== 'manager' && rn !== 'user') rn = 'user';
+      var scopeType = normalizeScopeType(nb.scopeType, rn);
       if (String(nb.password).length < 8) return json(request, { error: 'Passwort zu kurz' }, 400);
       var pRec = await createPasswordRecord(String(nb.password));
       users[un] = {
@@ -478,6 +548,9 @@ export default {
         passwordSalt: pRec.passwordSalt,
         name: sanitizeString(nb.name, 120),
         role: rn,
+        scopeType: scopeType,
+        scopePartnerKey: sanitizeString(nb.scopePartnerKey, 80),
+        scopeTenantKey: sanitizeString(nb.scopeTenantKey, 80),
         forcePasswordChange: true
       };
       await env.KV.put('users', JSON.stringify(users));
