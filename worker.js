@@ -23,13 +23,15 @@ const GITHUB_HTML = 'https://raw.githubusercontent.com/Cupra-S2027/fixit-dashboa
 
 function getCorsHeaders(request) {
   var origin = request.headers.get('Origin') || '';
-  var allowedOrigin = ALLOWED_ORIGINS.indexOf(origin) !== -1 ? origin : ALLOWED_ORIGINS[0];
-  return {
-    'Access-Control-Allow-Origin': allowedOrigin,
+  var headers = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Vary': 'Origin'
   };
+  if (origin && ALLOWED_ORIGINS.indexOf(origin) !== -1) {
+    headers['Access-Control-Allow-Origin'] = origin;
+  }
+  return headers;
 }
 
 function json(request, data, status) {
