@@ -53,6 +53,27 @@ function formatDateYYYYMMDD(isoDate) {
   return y + '-' + m + '-' + day;
 }
 
+function sanitizeCustomerForRead(customer, role) {
+  var c = Object.assign({}, customer || {});
+  var privileged = role === 'admin' || role === 'manager';
+  if (privileged) return c;
+
+  // DSGVO-Minimierung für nicht-privilegierte Rollen
+  return {
+    id: c.id,
+    tenantKey: c.tenantKey || '',
+    erpId: c.erpId || '',
+    name: c.name || '',
+    status: c.status || 'pending',
+    goLive: c.goLive || '',
+    category: c.category || '',
+    onboardingProgress: c.onboardingProgress || 0,
+    onboardingCompleted: !!c.onboardingCompleted,
+    mrr: c.mrr || 0,
+    activeContracts: c.activeContracts || 0
+  };
+}
+
 function integrationAuthorized(request, env) {
   var expected = (env.FIXIT_SYNC_TOKEN || '').trim();
   if (!expected) return false;
@@ -197,6 +218,8 @@ export default {
     var users = await getUsers(env.KV);
     var me = users[username];
     var isAdmin = me && me.role === 'admin';
+    var isManager = me && me.role === 'manager';
+    var canManageCustomers = !!(isAdmin || isManager);
 
     if (path === '/api/users/me' && request.method === 'GET') {
       var force = me.forcePasswordChange || false;
@@ -211,19 +234,22 @@ export default {
     }
 
     if (path === '/api/customers' && request.method === 'GET') {
-      return json(await getCustomers(env.KV));
+      var customersRead = await getCustomers(env.KV);
+      return json(customersRead.map(function(c) { return sanitizeCustomerForRead(c, me ? me.role : ''); }));
     }
 
     if (path === '/api/customers' && request.method === 'POST') {
+      if (!canManageCustomers) return json({ error: 'Keine Berechtigung' }, 403);
       var customers = await getCustomers(env.KV);
       var nc = await request.json();
       nc.id = customers.length > 0 ? Math.max.apply(null, customers.map(function(c) { return c.id; })) + 1 : 1;
       customers.push(nc);
       await env.KV.put('customers', JSON.stringify(customers));
-      return json(nc);
+      return json(sanitizeCustomerForRead(nc, me ? me.role : ''));
     }
 
     if (parts[1] === 'customers' && parts[2] && !parts[3] && request.method === 'PUT') {
+      if (!canManageCustomers) return json({ error: 'Keine Berechtigung' }, 403);
       var id = parseInt(parts[2]);
       var customers = await getCustomers(env.KV);
       var idx = customers.findIndex(function(c) { return c.id === id; });
@@ -231,10 +257,11 @@ export default {
       var upd = await request.json();
       customers[idx] = Object.assign({}, customers[idx], upd, { id: id });
       await env.KV.put('customers', JSON.stringify(customers));
-      return json(customers[idx]);
+      return json(sanitizeCustomerForRead(customers[idx], me ? me.role : ''));
     }
 
     if (parts[1] === 'customers' && parts[2] && !parts[3] && request.method === 'DELETE') {
+      if (!isAdmin) return json({ error: 'Keine Berechtigung' }, 403);
       var id = parseInt(parts[2]);
       var customers = await getCustomers(env.KV);
       customers = customers.filter(function(c) { return c.id !== id; });
