@@ -154,6 +154,25 @@ async function verifyPassword(user, inputPassword) {
   return { ok: false, upgraded: false };
 }
 
+async function migrateLegacyPasswords(users) {
+  var changed = false;
+  var keys = Object.keys(users || {});
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    var u = users[key];
+    if (!u) continue;
+    if (u.password && (!u.passwordHash || !u.passwordSalt)) {
+      var rec = await createPasswordRecord(String(u.password));
+      u.passwordHash = rec.passwordHash;
+      u.passwordSalt = rec.passwordSalt;
+      delete u.password;
+      if (!u.passwordChangedAt) u.passwordChangedAt = new Date().toISOString();
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 async function getUsers(KV) {
   var data = await KV.get('users');
   if (!data) {
@@ -252,6 +271,9 @@ export default {
         return json(request, { success: false, error: 'Ungültige Anfrage' }, 400);
       }
       var users = await getUsers(env.KV);
+      if (await migrateLegacyPasswords(users)) {
+        await env.KV.put('users', JSON.stringify(users));
+      }
       var cleanUsername = sanitizeString(b.username, 64);
       var user = users[cleanUsername];
       var verify = await verifyPassword(user, String(b.password));
@@ -375,6 +397,9 @@ export default {
 
     var username = session.username;
     var users = await getUsers(env.KV);
+    if (await migrateLegacyPasswords(users)) {
+      await env.KV.put('users', JSON.stringify(users));
+    }
     var me = users[username];
     var isAdmin = me && me.role === 'admin';
     var isManager = me && me.role === 'manager';
