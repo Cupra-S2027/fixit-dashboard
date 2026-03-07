@@ -163,7 +163,21 @@ export default {
         out = syncFields;
         customers.push(out);
       } else {
-        out = Object.assign({}, customers[idx], syncFields, { id: customers[idx].id });
+        var prev = customers[idx] || {};
+        var nextStatus = syncFields.status;
+
+        // Anti-regression:
+        // - "live" should not be downgraded by any later non-live sync event.
+        // - "onboarding" should only be downgraded to "pending" via explicit manual_sync.
+        if (prev.status === 'live' && nextStatus !== 'live') {
+          nextStatus = 'live';
+        }
+        if (prev.status === 'onboarding' && nextStatus === 'pending' && payload.event !== 'manual_sync') {
+          nextStatus = 'onboarding';
+        }
+        syncFields.status = nextStatus;
+
+        out = Object.assign({}, prev, syncFields, { id: prev.id });
         customers[idx] = out;
       }
 
