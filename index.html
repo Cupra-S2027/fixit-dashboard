@@ -2644,15 +2644,34 @@
             }
         }
 
+        function getNextDailyLogoutTimestamp() {
+            var next = new Date();
+            next.setHours(23, 0, 0, 0);
+            if (next.getTime() <= Date.now()) {
+                next.setDate(next.getDate() + 1);
+                next.setHours(23, 0, 0, 0);
+            }
+            return next.getTime();
+        }
+
+        function isSessionPastDailyCutoff() {
+            var cutoffRaw = sessionStorage.getItem('fixitSessionCutoffAt');
+            if (!cutoffRaw) return false;
+            var cutoff = Number(cutoffRaw);
+            return isFinite(cutoff) && Date.now() >= cutoff;
+        }
+
         function scheduleAutoLogout() {
             if (autoLogoutTimer) {
                 clearTimeout(autoLogoutTimer);
                 autoLogoutTimer = null;
             }
+            var cutoffAt = getNextDailyLogoutTimestamp();
+            sessionStorage.setItem('fixitSessionCutoffAt', String(cutoffAt));
             autoLogoutTimer = setTimeout(function() {
-                showToast('Sitzung nach 12 Stunden beendet', 'info');
+                showToast('Feierabend. Bitte morgen neu anmelden.', 'info');
                 handleLogout();
-            }, 12 * 60 * 60 * 1000);
+            }, Math.max(1000, cutoffAt - Date.now()));
         }
 
         function showDashboard() {
@@ -2712,6 +2731,7 @@
                     sessionStorage.setItem('fixitToken', AUTH_TOKEN);
                     sessionStorage.setItem('fixitUser', JSON.stringify(currentUser));
                     sessionStorage.setItem('fixitShowWelcomeModal', '1');
+                    sessionStorage.setItem('fixitSessionCutoffAt', String(getNextDailyLogoutTimestamp()));
                     showDashboard();
                 } else {
                     showToast(result.message || 'Login fehlgeschlagen', 'error');
@@ -2755,10 +2775,12 @@
             // Restore session
             var savedToken = sessionStorage.getItem('fixitToken');
             var savedUser = sessionStorage.getItem('fixitUser');
-            if (savedToken && savedUser) {
+            if (savedToken && savedUser && !isSessionPastDailyCutoff()) {
                 AUTH_TOKEN = savedToken;
                 currentUser = JSON.parse(savedUser);
                 showDashboard();
+            } else if (savedToken || savedUser) {
+                logout();
             }
 
             // Filter tabs
