@@ -462,6 +462,68 @@
             box-shadow: 0 0 0 3px var(--focus-ring);
         }
 
+        .welcome-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            padding: 1rem 1.1rem;
+            border: 1px solid rgba(14, 116, 144, 0.12);
+            border-radius: 16px;
+            background:
+              radial-gradient(circle at top right, rgba(14, 165, 233, 0.14), transparent 32%),
+              linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,249,255,0.96));
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+        }
+
+        .welcome-copy {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            min-width: 0;
+        }
+
+        .welcome-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, rgba(14,165,233,0.18), rgba(8,145,178,0.14));
+            color: #0f4c81;
+            box-shadow: inset 0 0 0 1px rgba(14,116,144,0.08);
+            flex-shrink: 0;
+        }
+
+        .welcome-text strong {
+            display: block;
+            font-size: 1rem;
+            color: var(--text);
+            margin-bottom: 0.15rem;
+        }
+
+        .welcome-text p {
+            margin: 0;
+            font-size: 0.86rem;
+            color: var(--text-muted);
+        }
+
+        .welcome-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.45rem 0.7rem;
+            border-radius: 999px;
+            background: rgba(15, 118, 110, 0.08);
+            color: #0f766e;
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
         /* Customers Grid */
         .customers-grid {
             display: grid;
@@ -483,6 +545,31 @@
             transform: translateY(-4px);
             box-shadow: var(--shadow-hover);
             border-color: var(--primary);
+        }
+
+        .customer-card.customer-card-updated {
+            border-color: rgba(30, 144, 255, 0.55);
+            box-shadow: 0 0 0 1px rgba(30, 144, 255, 0.08), 0 18px 40px rgba(30, 144, 255, 0.12);
+            animation: customerPulse 2.4s ease-in-out infinite;
+        }
+
+        .update-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            color: #0f4c81;
+            background: rgba(30, 144, 255, 0.12);
+            border: 1px solid rgba(30, 144, 255, 0.2);
+        }
+
+        @keyframes customerPulse {
+            0%, 100% { box-shadow: 0 0 0 1px rgba(30, 144, 255, 0.08), 0 18px 40px rgba(30, 144, 255, 0.10); }
+            50% { box-shadow: 0 0 0 4px rgba(30, 144, 255, 0.10), 0 20px 46px rgba(30, 144, 255, 0.18); }
         }
 
         .customer-header {
@@ -1035,6 +1122,17 @@
                     </div>
                 </div>
 
+                <div class="welcome-banner" id="welcomeBanner" style="display:none">
+                    <div class="welcome-copy">
+                        <div class="welcome-icon" id="welcomeBannerIcon">☀️</div>
+                        <div class="welcome-text">
+                            <strong id="welcomeBannerTitle">Willkommen zurück</strong>
+                            <p id="welcomeBannerText">Heute läuft das Dashboard für dich voraus.</p>
+                        </div>
+                    </div>
+                    <div class="welcome-chip" id="welcomeBannerChip">Fokus des Tages</div>
+                </div>
+
                 <div class="stats-bar">
                     <div class="stat-card live">
                         <div class="stat-label">Live</div>
@@ -1108,16 +1206,13 @@
                         <input type="text" id="newName" placeholder="Anzeigename" class="form-input">
                         <select id="newRole" class="form-input" onchange="syncScopeFields()">
                             <option value="user">User</option>
-                            <option value="manager">Manager</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:1rem;margin-bottom:1rem">
                         <select id="newScopeType" class="form-input" onchange="syncScopeFields()">
-                            <option value="self">Scope: Self</option>
-                            <option value="tenant">Scope: Tenant</option>
-                            <option value="partner">Scope: Partner</option>
                             <option value="all">Scope: All</option>
+                            <option value="tenant">Scope: Tenant</option>
                         </select>
                         <input type="text" id="newScopePartnerKey" class="form-input" placeholder="Partner Key (bei Partner-Scopes)">
                         <input type="text" id="newScopeTenantKey" class="form-input" placeholder="Tenant Key (bei Tenant-Scopes)">
@@ -1161,7 +1256,6 @@
                         <label>Rolle</label>
                         <select id="editRole" class="form-input" onchange="syncEditScopeFields()">
                             <option value="user">User</option>
-                            <option value="manager">Manager</option>
                             <option value="admin">Admin</option>
                         </select>
                     </div>
@@ -1170,10 +1264,8 @@
                     <div class="panel-field">
                         <label>Scope</label>
                         <select id="editScopeType" class="form-input" onchange="syncEditScopeFields()">
-                            <option value="self">Self</option>
-                            <option value="tenant">Tenant</option>
-                            <option value="partner">Partner</option>
                             <option value="all">All</option>
+                            <option value="tenant">Tenant</option>
                         </select>
                     </div>
                     <div class="panel-field">
@@ -1211,9 +1303,83 @@
         var activePanelTab = 'info';
         var userDirectory = {};
         var editingUsername = '';
+        var customerRefreshTimer = null;
+
+        function normalizeRole(role) {
+            return role === 'admin' ? 'admin' : 'user';
+        }
+
+        function getCustomerChangeVersion(customer) {
+            return customer && customer.changeVersion ? String(customer.changeVersion) : '';
+        }
+
+        function hasUnreadChange(customer) {
+            return !!(customer && customer.hasUnreadUpdate);
+        }
+
+        function acknowledgeCustomerChange(customer) {
+            var version = getCustomerChangeVersion(customer);
+            if (!customer || !version) return Promise.resolve();
+            return apiCall('POST', '/api/customers/' + customer.id + '/ack').then(function() {
+                customer.hasUnreadUpdate = false;
+                return true;
+            }).catch(function() {
+                return false;
+            });
+        }
+
+        function buildGreetingPayload() {
+            var hour = new Date().getHours();
+            var firstName = (currentUser && currentUser.name ? String(currentUser.name).trim().split(/\s+/)[0] : 'Team');
+            if (hour < 11) {
+                return {
+                    icon: '☀️',
+                    title: 'Guten Morgen, ' + firstName,
+                    text: 'Dein Dashboard ist bereit. Starte mit klarer Sicht in den Arbeitstag.',
+                    chip: 'Fokus: Prioritäten zuerst'
+                };
+            }
+            if (hour < 17) {
+                return {
+                    icon: '🚀',
+                    title: 'Guten Tag, ' + firstName,
+                    text: 'Alles Wichtige liegt vor dir. Heute zählt saubere Abarbeitung.',
+                    chip: 'Fokus: Kunden sauber führen'
+                };
+            }
+            return {
+                icon: '🌙',
+                title: 'Guten Abend, ' + firstName,
+                text: 'Halte die letzten Punkte sauber fest und bring den Tag kontrolliert zu Ende.',
+                chip: 'Fokus: Übergaben sauber halten'
+            };
+        }
+
+        function renderWelcomeBanner() {
+            var banner = document.getElementById('welcomeBanner');
+            if (!banner || !currentUser) return;
+            var payload = buildGreetingPayload();
+            var icon = document.getElementById('welcomeBannerIcon');
+            var title = document.getElementById('welcomeBannerTitle');
+            var text = document.getElementById('welcomeBannerText');
+            var chip = document.getElementById('welcomeBannerChip');
+            if (icon) icon.textContent = payload.icon;
+            if (title) title.textContent = payload.title;
+            if (text) text.textContent = payload.text;
+            if (chip) chip.textContent = payload.chip;
+            banner.style.display = 'flex';
+
+            var todayKey = new Date().toISOString().slice(0, 10);
+            var welcomeKey = 'fixitWelcomeSeen:' + (currentUser.username || 'guest') + ':' + todayKey;
+            if (!sessionStorage.getItem(welcomeKey)) {
+                showToast(payload.title + ' - ' + payload.text, 'success');
+                sessionStorage.setItem(welcomeKey, '1');
+            }
+        }
 
         // === API ===
         function logoutToLogin() {
+            stopCustomerAutoRefresh();
             AUTH_TOKEN = null;
             sessionStorage.clear();
             currentUser = null;
@@ -1364,8 +1530,9 @@
                     return;
                 }
                 var rows = list.map(function(c) {
-                    var canEdit = currentUser.role === 'admin' || currentUser.role === 'manager' || c.status !== 'pending';
-                    return '<tr onclick="openDetailPanel(' + c.id + ')" style="cursor:pointer">' +
+                    var canEdit = normalizeRole(currentUser.role) === 'admin' || normalizeRole(currentUser.role) === 'user';
+                    var isUpdated = hasUnreadChange(c);
+                    return '<tr onclick="openDetailPanel(' + c.id + ')" style="cursor:pointer;' + (isUpdated ? 'background:rgba(30,144,255,0.05);' : '') + '">' +
                         '<td><strong>' + escHtml(c.name || '–') + '</strong></td>' +
                         '<td><span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span></td>' +
                         '<td>' + escHtml(formatDate(c.goLive) || '–') + '</td>' +
@@ -1391,15 +1558,19 @@
                 return;
             }
             grid.innerHTML = list.map(function(c) {
-                var canEdit = currentUser.role === 'admin' || currentUser.role === 'manager' || c.status !== 'pending';
-                return '<div class="customer-card" onclick="openDetailPanel(' + c.id + ')">' +
+                var canEdit = normalizeRole(currentUser.role) === 'admin' || normalizeRole(currentUser.role) === 'user';
+                var isUpdated = hasUnreadChange(c);
+                return '<div class="customer-card' + (isUpdated ? ' customer-card-updated' : '') + '" onclick="openDetailPanel(' + c.id + ')">' +
                     '<div class="card-quick-actions">' +
                     (canEdit ? '<button class="quick-btn" onclick="event.stopPropagation();openDetailPanel(' + c.id + ',true)" title="Bearbeiten">✏️</button>' : '') +
-                    (currentUser.role === 'admin' ? '<button class="quick-btn" onclick="event.stopPropagation();deleteCustomer(' + c.id + ')" title="Löschen">🗑️</button>' : '') +
+                    (normalizeRole(currentUser.role) === 'admin' ? '<button class="quick-btn" onclick="event.stopPropagation();deleteCustomer(' + c.id + ')" title="Löschen">🗑️</button>' : '') +
                     '</div>' +
                     '<div class="customer-card-header">' +
                     '<div class="customer-name">' + escHtml(c.name || 'Unbekannt') + '</div>' +
+                    '<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">' +
+                    (isUpdated ? '<span class="update-pill">Neu</span>' : '') +
                     '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>' +
+                    '</div>' +
                     '</div>' +
                     '<div class="customer-info">' +
                     '<div class="info-row">📅 ' + escHtml(formatDate(c.goLive) || '–') + '</div>' +
@@ -1420,19 +1591,21 @@
         function openDetailPanel(id, editMode) {
             var c = customers.find(function(x) { return x.id === id; });
             if (!c) return;
-            activePanelCustomerId = id;
-            panelEditMode = editMode || false;
-            activePanelTab = 'info';
-            document.getElementById('panelTitle').textContent = c.name || 'Mandant';
-            document.getElementById('panelStatusBadge').innerHTML = '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>';
-            // Reset tabs
-            document.querySelectorAll('.panel-tab').forEach(function(t, i) {
-                t.classList.toggle('active', i === 0);
+            acknowledgeCustomerChange(c).finally(function() {
+                activePanelCustomerId = id;
+                panelEditMode = editMode || false;
+                activePanelTab = 'info';
+                document.getElementById('panelTitle').textContent = c.name || 'Mandant';
+                document.getElementById('panelStatusBadge').innerHTML = '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>';
+                document.querySelectorAll('.panel-tab').forEach(function(t, i) {
+                    t.classList.toggle('active', i === 0);
+                });
+                renderPanelBody();
+                renderCustomers();
+                document.getElementById('detailPanel').classList.add('open');
+                document.getElementById('detailOverlay').classList.add('open');
+                document.body.style.overflow = 'hidden';
             });
-            renderPanelBody();
-            document.getElementById('detailPanel').classList.add('open');
-            document.getElementById('detailOverlay').classList.add('open');
-            document.body.style.overflow = 'hidden';
         }
 
         function closeDetailPanel() {
@@ -1455,9 +1628,10 @@
             if (!c) return;
             var body = document.getElementById('panelBody');
             var footer = document.getElementById('panelFooter');
-            var isAdmin = currentUser.role === 'admin';
-            var isManager = currentUser.role === 'manager';
-            var canEdit = isAdmin || isManager || c.status !== 'pending';
+            var role = normalizeRole(currentUser.role);
+            var isAdmin = role === 'admin';
+            var isUser = role === 'user';
+            var canEdit = isAdmin || isUser;
             var deck = c.deck || {};
             var e = panelEditMode;
 
@@ -1485,7 +1659,7 @@
             if (activePanelTab === 'info') {
                 html = '<div class="panel-section"><div class="panel-section-title">Allgemein</div>' +
                     '<div class="panel-grid">' +
-                    (isAdmin || isManager ? field('Status', 'status', c.status, 'status') : '<div class="panel-field"><label>Status</label><div class="view-value"><span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span></div></div>') +
+                    (canEdit ? field('Status', 'status', c.status, 'status') : '<div class="panel-field"><label>Status</label><div class="view-value"><span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span></div></div>') +
                     field('Go-Live Datum', 'golive', c.goLive, 'date') +
                     '</div>' +
                     '<div class="panel-grid">' +
@@ -1552,8 +1726,9 @@
         function savePanelEdit() {
             var c = customers.find(function(x) { return x.id === activePanelCustomerId; });
             if (!c) return;
-            var isAdmin = currentUser.role === 'admin';
-            var isManager = currentUser.role === 'manager';
+            var role = normalizeRole(currentUser.role);
+            var isAdmin = role === 'admin';
+            var isUser = role === 'user';
             if (!c.deck) c.deck = {};
 
             // Info tab
@@ -1562,8 +1737,8 @@
             var peContact = document.getElementById('pe_contact');
             var pePhone = document.getElementById('pe_phone');
             var peEmail = document.getElementById('pe_email');
-            if (peStatus && (isAdmin || isManager)) c.status = peStatus.value;
-            if (peGolive && (isAdmin || isManager)) c.goLive = peGolive.value;
+            if (peStatus && (isAdmin || isUser)) c.status = peStatus.value;
+            if (peGolive && (isAdmin || isUser)) c.goLive = peGolive.value;
             if (peContact) c.contact = peContact.value;
             if (pePhone) c.phone = pePhone.value;
             if (peEmail) c.email = peEmail.value;
@@ -1586,7 +1761,12 @@
             // Track what tab was changed
             c.lastEditedTab = activePanelTab === 'info' ? 'Stammdaten' : activePanelTab === 'details' ? 'Verwaltung' : 'Notizen';
 
-            apiCall('PUT', '/api/customers/' + c.id, c).then(function() {
+            apiCall('PUT', '/api/customers/' + c.id, c).then(function(saved) {
+                if (saved && saved.id) {
+                    var idx = customers.findIndex(function(x) { return x.id === saved.id; });
+                    if (idx !== -1) customers[idx] = saved;
+                    c = saved;
+                }
                 panelEditMode = false;
                 document.getElementById('panelTitle').textContent = c.name || 'Mandant';
                 document.getElementById('panelStatusBadge').innerHTML = '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>';
@@ -1823,8 +2003,7 @@
         // === USER MANAGEMENT ===
         function getDefaultScopeForRole(role) {
             if (role === 'admin') return 'all';
-            if (role === 'manager') return 'partner';
-            return 'self';
+            return 'all';
         }
 
         function syncScopeFields() {
@@ -1836,7 +2015,7 @@
 
             var role = roleEl.value;
             var scope = scopeEl.value;
-            var allowed = role === 'admin' ? ['all'] : (role === 'manager' ? ['partner', 'tenant'] : ['self', 'tenant']);
+            var allowed = role === 'admin' ? ['all'] : ['all', 'tenant'];
             Array.prototype.forEach.call(scopeEl.options, function(opt) {
                 opt.disabled = allowed.indexOf(opt.value) === -1;
             });
@@ -1956,7 +2135,6 @@
             if (!uname||!pname||!prole||!pscope||!ppwd) return;
             if (!uname.value||!pname.value||!ppwd.value) { showToast('Alle Felder ausfüllen!','error'); return; }
             var selectedScope = pscope.value || getDefaultScopeForRole(prole.value);
-            if (selectedScope === 'partner' && (!pscopePartner || !pscopePartner.value.trim())) { showToast('Partner-Key fehlt!','error'); return; }
             if (selectedScope === 'tenant' && (!pscopeTenant || !pscopeTenant.value.trim())) { showToast('Tenant-Key fehlt!','error'); return; }
             var newUserData = {
                 username: uname.value.trim(),
@@ -1999,7 +2177,7 @@
 
             var role = roleEl.value;
             var scope = scopeEl.value;
-            var allowed = role === 'admin' ? ['all'] : (role === 'manager' ? ['partner', 'tenant'] : ['self', 'tenant']);
+            var allowed = role === 'admin' ? ['all'] : ['all', 'tenant'];
             Array.prototype.forEach.call(scopeEl.options, function(opt) {
                 opt.disabled = allowed.indexOf(opt.value) === -1;
             });
@@ -2110,26 +2288,74 @@
 
         // === SHOW DASHBOARD ===
         function applyRoleVisibility() {
-            var role = currentUser && currentUser.role ? currentUser.role : 'user';
+            var role = normalizeRole(currentUser && currentUser.role ? currentUser.role : 'user');
             var scopeType = currentUser && currentUser.scopeType ? currentUser.scopeType : '';
             var isAdmin = role === 'admin';
-            var isManager = role === 'manager';
-            var isTenantScopedUser = role === 'user' && scopeType === 'tenant';
+            var isUser = role === 'user';
+            var isTenantScopedUser = isUser && scopeType === 'tenant';
 
             var newBtn = document.getElementById('newCustomerBtn');
-            if (newBtn) newBtn.style.display = (isAdmin || isManager || isTenantScopedUser) ? 'inline-flex' : 'none';
+            if (newBtn) newBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
             var umBtn = document.getElementById('userManagementBtn');
             if (umBtn) umBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
             var exportBtn = document.getElementById('exportBtn');
-            if (exportBtn) exportBtn.style.display = (isAdmin || isManager) ? 'inline-flex' : 'none';
+            if (exportBtn) exportBtn.style.display = isAdmin ? 'inline-flex' : 'none';
 
             var importBtn = document.getElementById('importBtn');
-            if (importBtn) importBtn.style.display = (isAdmin || isManager || isTenantScopedUser) ? 'inline-flex' : 'none';
+            if (importBtn) importBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+        }
+
+        function mergeCustomerState(nextCustomers) {
+            var previousById = {};
+            customers.forEach(function(customer) {
+                previousById[customer.id] = customer;
+            });
+            customers = (Array.isArray(nextCustomers) ? nextCustomers : []).map(function(customer) {
+                var previous = previousById[customer.id];
+                if (!previous) return customer;
+                if (activePanelCustomerId === customer.id) {
+                    customer.hasUnreadUpdate = false;
+                }
+                return customer;
+            });
+            renderCustomers();
+            updateStats();
+        }
+
+        function loadCustomers(options) {
+            var opts = options || {};
+            return apiCall('GET', '/api/customers').then(function(data) {
+                mergeCustomerState(Array.isArray(data) ? data : []);
+            }).catch(function(err) {
+                if (!opts.silent) {
+                    console.error('Kunden laden:', err);
+                    customers = [];
+                    renderCustomers();
+                    updateStats();
+                }
+                throw err;
+            });
+        }
+
+        function startCustomerAutoRefresh() {
+            stopCustomerAutoRefresh();
+            customerRefreshTimer = setInterval(function() {
+                if (document.hidden || !currentUser || !AUTH_TOKEN) return;
+                loadCustomers({ silent: true }).catch(function() {});
+            }, 15000);
+        }
+
+        function stopCustomerAutoRefresh() {
+            if (customerRefreshTimer) {
+                clearInterval(customerRefreshTimer);
+                customerRefreshTimer = null;
+            }
         }
 
         function showDashboard() {
+            currentUser.role = normalizeRole(currentUser.role);
             document.getElementById('loginScreen').classList.add('hidden');
             document.getElementById('dashboard').classList.add('active');
 
@@ -2137,27 +2363,22 @@
             if (nameEl) nameEl.textContent = currentUser.name;
             var avatarEl = document.getElementById('userAvatar');
             if (avatarEl) avatarEl.textContent = currentUser.name.charAt(0).toUpperCase();
+            renderWelcomeBanner();
 
             // Role-based button visibility
             applyRoleVisibility();
 
-            // Load customers
-            apiCall('GET', '/api/customers').then(function(data) {
-                customers = Array.isArray(data) ? data : [];
-                renderCustomers();
-                updateStats();
-            }).catch(function(err) {
-                console.error('Kunden laden:', err);
-                customers = [];
-                renderCustomers();
-            });
+            loadCustomers({ silent: false }).catch(function() {});
+            startCustomerAutoRefresh();
 
             // Check password
             apiCall('GET', '/api/users/me').then(function(data) {
                 if (!data) return;
+                currentUser.role = normalizeRole(data.role || currentUser.role || 'user');
                 currentUser.scopeType = data.scopeType || currentUser.scopeType || '';
                 currentUser.scopePartnerKey = data.scopePartnerKey || '';
                 currentUser.scopeTenantKey = data.scopeTenantKey || '';
+                renderWelcomeBanner();
                 applyRoleVisibility();
                 if (data.forcePasswordChange) {
                     currentUser.forcePasswordChange = true;
@@ -2195,6 +2416,12 @@
                 showToast('Verbindungsfehler', 'error');
             });
         }
+
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && currentUser && AUTH_TOKEN) {
+                loadCustomers({ silent: true }).catch(function() {});
+            }
+        });
 
         function logout() {
             AUTH_TOKEN = null;

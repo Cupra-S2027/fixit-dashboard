@@ -82,6 +82,11 @@ function sanitizeNumber(value, min, max) {
   return n;
 }
 
+function normalizeUserRole(role) {
+  var raw = sanitizeString(role || '', 24).toLowerCase();
+  return raw === 'admin' ? 'admin' : 'user';
+}
+
 function sanitizeCustomerInput(input, existing) {
   var base = existing ? Object.assign({}, existing) : {};
   var deckIn = input && input.deck ? input.deck : {};
@@ -109,6 +114,10 @@ function sanitizeCustomerInput(input, existing) {
     fixitLeadStatus: sanitizeString(input.fixitLeadStatus || base.fixitLeadStatus || '', 64),
     fixitOnboardingStatus: sanitizeString(input.fixitOnboardingStatus || base.fixitOnboardingStatus || '', 64),
     syncedAt: sanitizeString(input.syncedAt || new Date().toISOString(), 40),
+    changeVersion: sanitizeString(input.changeVersion || base.changeVersion || '', 64),
+    lastChangeSource: sanitizeString(input.lastChangeSource || base.lastChangeSource || '', 40),
+    lastChangedAt: sanitizeString(input.lastChangedAt || base.lastChangedAt || '', 40),
+    lastChangedBy: sanitizeString(input.lastChangedBy || base.lastChangedBy || '', 120),
     deck: {
       verwaltungsart: sanitizeString(deckIn.verwaltungsart || (base.deck || {}).verwaltungsart || '', 400),
       hinweise: sanitizeString(deckIn.hinweise || (base.deck || {}).hinweise || '', 2000),
@@ -220,6 +229,35 @@ async function getAuditLogs(KV, limit) {
   return logs.slice(0, max);
 }
 
+async function getCustomerReads(KV) {
+  var raw = await KV.get('customer_reads');
+  if (!raw) return {};
+  try {
+    var parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+async function markCustomerRead(KV, username, customerId, changeVersion) {
+  if (!username || !customerId || !changeVersion) return;
+  var reads = await getCustomerReads(KV);
+  if (!reads[username] || typeof reads[username] !== 'object') {
+    reads[username] = {};
+  }
+  reads[username][String(customerId)] = String(changeVersion);
+  await KV.put('customer_reads', JSON.stringify(reads));
+}
+
+function annotateCustomerReadState(customer, username, reads) {
+  var out = Object.assign({}, customer || {});
+  var version = sanitizeString(out.changeVersion || '', 64);
+  var seen = reads && reads[username] ? sanitizeString(reads[username][String(out.id)] || '', 64) : '';
+  out.hasUnreadUpdate = !!version && seen !== version;
+  return out;
+}
+
 function normalizeDashboardStatus(raw) {
   var s = (raw || '').toString().toLowerCase().trim();
   if (s === 'coming_soon' || s === 'pending') return 'pending';
@@ -241,7 +279,7 @@ function formatDateYYYYMMDD(isoDate) {
 
 function sanitizeCustomerForRead(customer, role) {
   var c = Object.assign({}, customer || {});
-  var privileged = role === 'admin' || role === 'manager';
+  var privileged = normalizeUserRole(role) === 'admin' || normalizeUserRole(role) === 'user';
   if (privileged) return c;
 
   // DSGVO-Minimierung für nicht-privilegierte Rollen
@@ -262,19 +300,16 @@ function sanitizeCustomerForRead(customer, role) {
 
 function normalizeScopeType(value, role) {
   var raw = sanitizeString(value || '', 24).toLowerCase();
+  role = normalizeUserRole(role);
   if (role === 'admin') {
     return raw === 'all' ? 'all' : 'all';
   }
-  if (role === 'manager') {
-    if (raw === 'partner' || raw === 'tenant') return raw;
-    return 'partner';
-  }
-  if (raw === 'tenant' || raw === 'self') return raw;
-  return 'self';
+  if (raw === 'tenant') return raw;
+  return 'all';
 }
 
 function getUserScope(username, user) {
-  var role = user && user.role ? user.role : 'user';
+  var role = normalizeUserRole(user && user.role ? user.role : 'user');
   var scopeType = normalizeScopeType(user && user.scopeType, role);
   return {
     role: role,
@@ -318,6 +353,42 @@ function integrationAuthorized(request, env) {
   return provided === expected;
 }
 
+async function pushCustomerUpdateToFixit(env, customer) {
+  var endpointBase = sanitizeString((env && (env.FIXIT_APPS_API_URL || env.FIXIT_APPS_SYNC_URL)) || '', 260).replace(/\/+$/, '');
+  var token = sanitizeString((env && (env.FIXIT_APPS_SYNC_TOKEN || env.FIXIT_SYNC_TOKEN)) || '', 260);
+  if (!endpointBase || !token || !customer || !customer.fixitTenantId) return;
+
+  var payload = {
+    company_name: customer.name || '',
+    email: customer.email || '',
+    phone: customer.phone || '',
+    industry: customer.category || '',
+    status: customer.status || '',
+    dashboard_meta: {
+      contact: customer.contact || '',
+      go_live: customer.goLive || '',
+      plz: customer.plz || '',
+      ort: customer.ort || '',
+      notes: customer.notes || '',
+      verwaltungsart: customer.deck && customer.deck.verwaltungsart ? customer.deck.verwaltungsart : '',
+      hinweise: customer.deck && customer.deck.hinweise ? customer.deck.hinweise : '',
+      notfall: customer.deck && customer.deck.notfall ? customer.deck.notfall : '',
+      wording: customer.deck && customer.deck.wording ? customer.deck.wording : ''
+    }
+  };
+
+  try {
+    await fetch(endpointBase + '/api/v1/integrations/dashboard/customers/' + encodeURIComponent(String(customer.fixitTenantId)), {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (_) {}
+}
+
 export default {
   async fetch(request, env) {
     try {
@@ -358,7 +429,7 @@ export default {
           users[cleanUsername] = user;
           await env.KV.put('users', JSON.stringify(users));
         }
-        return json(request, { success: true, token: tk, user: { username: cleanUsername, name: user.name, role: user.role, forcePasswordChange: user.forcePasswordChange || false } });
+        return json(request, { success: true, token: tk, user: { username: cleanUsername, name: user.name, role: normalizeUserRole(user.role), forcePasswordChange: user.forcePasswordChange || false } });
       }
       return json(request, { success: false, error: 'Ungültige Anmeldedaten' }, 401);
     }
@@ -384,6 +455,7 @@ export default {
       var idx = customers.findIndex(function(c) {
         return c.tenantKey === tenantKey || c.erpId === tenantKey;
       });
+      var existingCustomer = idx >= 0 ? (customers[idx] || null) : null;
 
       var syncFields = sanitizeCustomerInput({
         tenantKey: tenantKey,
@@ -429,8 +501,12 @@ export default {
         fixitTenantId: tenant.id || null,
         fixitLeadStatus: tenant.lead_status || '',
         fixitOnboardingStatus: tenant.onboarding_status || '',
-        syncedAt: new Date().toISOString()
-      }, null);
+        syncedAt: new Date().toISOString(),
+        changeVersion: new Date().toISOString(),
+        lastChangeSource: 'fixit-apps',
+        lastChangedAt: new Date().toISOString(),
+        lastChangedBy: 'FixiT Apps'
+      }, existingCustomer);
 
       var out;
       if (idx === -1) {
@@ -476,9 +552,11 @@ export default {
     var me = users[username];
     if (!me) return json(request, { error: 'Ungültige Session' }, 401);
     var scope = getUserScope(username, me);
-    var isAdmin = me && me.role === 'admin';
-    var isManager = me && me.role === 'manager';
-    var canManageCustomers = !!(isAdmin || isManager || scope.scopeType === 'tenant');
+    var role = normalizeUserRole(me && me.role);
+    var isAdmin = role === 'admin';
+    var isUser = role === 'user';
+    var canCreateCustomers = !!isAdmin;
+    var canUpdateCustomers = !!(isAdmin || isUser);
 
     if (path === '/api/users/me' && request.method === 'GET') {
       var force = me.forcePasswordChange || false;
@@ -492,7 +570,7 @@ export default {
       return json(request, {
         username: username,
         name: me.name,
-        role: me.role,
+        role: role,
         scopeType: scope.scopeType,
         scopePartnerKey: scope.partnerKey,
         scopeTenantKey: scope.tenantKey,
@@ -511,24 +589,33 @@ export default {
     if (path === '/api/customers' && request.method === 'GET') {
       var customersRead = await getCustomers(env.KV);
       var scopedRead = customersRead.filter(function(c) { return canReadCustomer(scope, c); });
-      return json(request, scopedRead.map(function(c) { return sanitizeCustomerForRead(c, me ? me.role : ''); }));
+      var reads = await getCustomerReads(env.KV);
+      return json(request, scopedRead.map(function(c) {
+        return sanitizeCustomerForRead(annotateCustomerReadState(c, username, reads), role);
+      }));
     }
 
     if (path === '/api/customers' && request.method === 'POST') {
-      if (!canManageCustomers) return json(request, { error: 'Keine Berechtigung' }, 403);
+      if (!canCreateCustomers) return json(request, { error: 'Keine Berechtigung' }, 403);
       var customers = await getCustomers(env.KV);
       var ncIn = await parseJson(request);
       if (!ncIn || !ncIn.name) return json(request, { error: 'Mandantenname fehlt' }, 400);
-      var nc = restrictCustomerWrite(scope, sanitizeCustomerInput(ncIn, null));
+      var createdAt = new Date().toISOString();
+      var nc = restrictCustomerWrite(scope, sanitizeCustomerInput(Object.assign({}, ncIn, {
+        changeVersion: createdAt,
+        lastChangeSource: 'dashboard',
+        lastChangedAt: createdAt,
+        lastChangedBy: me && me.name ? me.name : username
+      }), null));
       nc.id = customers.length > 0 ? Math.max.apply(null, customers.map(function(c) { return c.id; })) + 1 : 1;
       customers.push(nc);
       await env.KV.put('customers', JSON.stringify(customers));
       await appendAuditLog(env.KV, username, 'customer.create', String(nc.id), { name: nc.name, scopeType: scope.scopeType });
-      return json(request, sanitizeCustomerForRead(nc, me ? me.role : ''));
+      return json(request, sanitizeCustomerForRead(nc, role));
     }
 
     if (parts[1] === 'customers' && parts[2] && !parts[3] && request.method === 'PUT') {
-      if (!canManageCustomers) return json(request, { error: 'Keine Berechtigung' }, 403);
+      if (!canUpdateCustomers) return json(request, { error: 'Keine Berechtigung' }, 403);
       var id = parseInt(parts[2]);
       var customers = await getCustomers(env.KV);
       var idx = customers.findIndex(function(c) { return c.id === id; });
@@ -536,10 +623,28 @@ export default {
       if (!canReadCustomer(scope, customers[idx])) return json(request, { error: 'Keine Berechtigung' }, 403);
       var upd = await parseJson(request);
       if (!upd) return json(request, { error: 'Ungültige Daten' }, 400);
-      customers[idx] = Object.assign({}, restrictCustomerWrite(scope, sanitizeCustomerInput(upd, customers[idx])), { id: id });
+      var changeAt = new Date().toISOString();
+      customers[idx] = Object.assign({}, restrictCustomerWrite(scope, sanitizeCustomerInput(Object.assign({}, upd, {
+        changeVersion: changeAt,
+        lastChangeSource: 'dashboard',
+        lastChangedAt: changeAt,
+        lastChangedBy: me && me.name ? me.name : username
+      }), customers[idx])), { id: id });
       await env.KV.put('customers', JSON.stringify(customers));
       await appendAuditLog(env.KV, username, 'customer.update', String(id), { name: customers[idx].name, scopeType: scope.scopeType });
-      return json(request, sanitizeCustomerForRead(customers[idx], me ? me.role : ''));
+      await pushCustomerUpdateToFixit(env, customers[idx]);
+      return json(request, sanitizeCustomerForRead(customers[idx], role));
+    }
+
+    if (parts[1] === 'customers' && parts[2] && parts[3] === 'ack' && request.method === 'POST') {
+      var ackId = parseInt(parts[2], 10);
+      if (!ackId) return json(request, { error: 'Ungültige Mandanten-ID' }, 400);
+      var ackCustomers = await getCustomers(env.KV);
+      var ackCustomer = ackCustomers.find(function(c) { return c.id === ackId; });
+      if (!ackCustomer) return json(request, { error: 'Nicht gefunden' }, 404);
+      if (!canReadCustomer(scope, ackCustomer)) return json(request, { error: 'Keine Berechtigung' }, 403);
+      await markCustomerRead(env.KV, username, ackId, ackCustomer.changeVersion || '');
+      return json(request, { success: true, customerId: ackId, changeVersion: ackCustomer.changeVersion || '' });
     }
 
     if (parts[1] === 'customers' && parts[2] && !parts[3] && request.method === 'DELETE') {
@@ -558,8 +663,8 @@ export default {
       Object.keys(users).forEach(function(k) {
         safe[k] = {
           name: users[k].name,
-          role: users[k].role,
-          scopeType: normalizeScopeType(users[k].scopeType, users[k].role),
+          role: normalizeUserRole(users[k].role),
+          scopeType: normalizeScopeType(users[k].scopeType, normalizeUserRole(users[k].role)),
           scopePartnerKey: users[k].scopePartnerKey || '',
           scopeTenantKey: users[k].scopeTenantKey || ''
         };
@@ -572,9 +677,8 @@ export default {
       var nb = await parseJson(request);
       if (!nb || !nb.username || !nb.password || !nb.name) return json(request, { error: 'Ungültige Benutzerdaten' }, 400);
       var un = sanitizeString(nb.username, 64);
-      var rn = sanitizeString(nb.role, 24).toLowerCase();
+      var rn = normalizeUserRole(nb.role);
       if (users[un]) return json(request, { error: 'Benutzername existiert bereits' }, 400);
-      if (rn !== 'admin' && rn !== 'manager' && rn !== 'user') rn = 'user';
       var scopeType = normalizeScopeType(nb.scopeType, rn);
       if (String(nb.password).length < 8) return json(request, { error: 'Passwort zu kurz' }, 400);
       var pRec = await createPasswordRecord(String(nb.password));
@@ -610,8 +714,7 @@ export default {
       var ub = await parseJson(request);
       if (!ub) return json(request, { error: 'Ungültige Daten' }, 400);
 
-      var nextRole = sanitizeString(ub.role || users[targetUpdate].role, 24).toLowerCase();
-      if (nextRole !== 'admin' && nextRole !== 'manager' && nextRole !== 'user') nextRole = 'user';
+      var nextRole = normalizeUserRole(ub.role || users[targetUpdate].role);
       if (targetUpdate === 'admin') nextRole = 'admin';
       var nextScopeType = normalizeScopeType(ub.scopeType || users[targetUpdate].scopeType, nextRole);
       var nextName = sanitizeString(ub.name || users[targetUpdate].name || targetUpdate, 120);
