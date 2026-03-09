@@ -20,6 +20,7 @@ const HTML_SECURITY_HEADERS = {
 };
 
 const GITHUB_HTML = 'https://raw.githubusercontent.com/Cupra-S2027/fixit-dashboard/main/index.html';
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 
 function getCorsHeaders(request) {
   var origin = request.headers.get('Origin') || '';
@@ -118,6 +119,7 @@ function sanitizeCustomerInput(input, existing) {
     lastChangeSource: sanitizeString(input.lastChangeSource || base.lastChangeSource || '', 40),
     lastChangedAt: sanitizeString(input.lastChangedAt || base.lastChangedAt || '', 40),
     lastChangedBy: sanitizeString(input.lastChangedBy || base.lastChangedBy || '', 120),
+    lastChangedArea: sanitizeString(input.lastChangedArea || base.lastChangedArea || '', 80),
     deck: {
       verwaltungsart: sanitizeString(deckIn.verwaltungsart || (base.deck || {}).verwaltungsart || '', 400),
       hinweise: sanitizeString(deckIn.hinweise || (base.deck || {}).hinweise || '', 2000),
@@ -429,7 +431,7 @@ export default {
       if (user && verify.ok) {
         var tk = makeToken();
         var sessions = JSON.parse(await env.KV.get('sessions') || '{}');
-        sessions[tk] = { username: cleanUsername, expires: Date.now() + 86400000 };
+        sessions[tk] = { username: cleanUsername, expires: Date.now() + SESSION_TTL_MS };
         await env.KV.put('sessions', JSON.stringify(sessions));
         if (verify.upgraded) {
           users[cleanUsername] = user;
@@ -511,7 +513,8 @@ export default {
         changeVersion: new Date().toISOString(),
         lastChangeSource: 'fixit-apps',
         lastChangedAt: new Date().toISOString(),
-        lastChangedBy: 'FixiT Apps'
+        lastChangedBy: 'FixiT Apps',
+        lastChangedArea: 'Portal-Sync'
       }, existingCustomer);
 
       var out;

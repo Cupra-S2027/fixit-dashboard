@@ -477,6 +477,11 @@
             box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
         }
 
+        .welcome-banner.compact {
+            padding: 0.9rem 1rem;
+            border-radius: 14px;
+        }
+
         .welcome-copy {
             display: flex;
             align-items: center;
@@ -500,14 +505,14 @@
 
         .welcome-text strong {
             display: block;
-            font-size: 1rem;
+            font-size: 1.1rem;
             color: var(--text);
             margin-bottom: 0.15rem;
         }
 
         .welcome-text p {
             margin: 0;
-            font-size: 0.86rem;
+            font-size: 0.95rem;
             color: var(--text-muted);
         }
 
@@ -553,23 +558,88 @@
             animation: customerPulse 2.4s ease-in-out infinite;
         }
 
-        .update-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.25rem 0.55rem;
-            border-radius: 999px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-            color: #0f4c81;
-            background: rgba(30, 144, 255, 0.12);
-            border: 1px solid rgba(30, 144, 255, 0.2);
-        }
-
         @keyframes customerPulse {
             0%, 100% { box-shadow: 0 0 0 1px rgba(30, 144, 255, 0.08), 0 18px 40px rgba(30, 144, 255, 0.10); }
             50% { box-shadow: 0 0 0 4px rgba(30, 144, 255, 0.10), 0 20px 46px rgba(30, 144, 255, 0.18); }
+        }
+
+        .welcome-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            background: rgba(15, 23, 42, 0.42);
+            backdrop-filter: blur(10px);
+            z-index: 12000;
+        }
+
+        .welcome-modal.active {
+            display: flex;
+        }
+
+        .welcome-modal-card {
+            width: min(760px, 100%);
+            border-radius: 28px;
+            padding: 2rem;
+            border: 1px solid rgba(11, 114, 231, 0.14);
+            background:
+              radial-gradient(circle at top right, rgba(14, 165, 233, 0.16), transparent 35%),
+              linear-gradient(135deg, rgba(255,255,255,0.98), rgba(241,245,255,0.98));
+            box-shadow: 0 30px 80px rgba(15, 23, 42, 0.24);
+        }
+
+        .welcome-modal-head {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .welcome-modal-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            background: linear-gradient(135deg, rgba(11,114,231,0.18), rgba(8,145,178,0.16));
+            color: #0f4c81;
+            box-shadow: inset 0 0 0 1px rgba(11,114,231,0.08);
+            flex-shrink: 0;
+        }
+
+        .welcome-modal-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(1.6rem, 4vw, 2.4rem);
+            line-height: 1.1;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .welcome-modal-subtitle {
+            margin-top: 0.35rem;
+            font-size: 1.05rem;
+            color: var(--text-muted);
+        }
+
+        .welcome-modal-quote {
+            margin: 1.25rem 0 1.5rem;
+            padding: 1rem 1.1rem;
+            border-radius: 18px;
+            background: rgba(11, 114, 231, 0.07);
+            border: 1px solid rgba(11, 114, 231, 0.12);
+            color: var(--text);
+            font-size: 1.08rem;
+            line-height: 1.7;
+        }
+
+        .welcome-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
         }
 
         .customer-header {
@@ -1072,6 +1142,22 @@
         </div>
     </div>
 
+    <div class="welcome-modal" id="welcomeModal">
+        <div class="welcome-modal-card">
+            <div class="welcome-modal-head">
+                <div class="welcome-modal-icon" id="welcomeModalIcon">☀️</div>
+                <div>
+                    <div class="welcome-modal-title" id="welcomeModalTitle">Willkommen zurück</div>
+                    <div class="welcome-modal-subtitle" id="welcomeModalSubtitle">Dein Arbeitstag startet jetzt klar und fokussiert.</div>
+                </div>
+            </div>
+            <div class="welcome-modal-quote" id="welcomeModalQuote">Klare Führung entsteht dort, wo kleine Dinge konsequent sauber erledigt werden.</div>
+            <div class="welcome-modal-actions">
+                <button class="btn btn-primary" onclick="dismissWelcomeModal()">Arbeitsplatz öffnen</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Dashboard -->
     <div class="dashboard" id="dashboard">
         <header>
@@ -1122,7 +1208,7 @@
                     </div>
                 </div>
 
-                <div class="welcome-banner" id="welcomeBanner" style="display:none">
+                <div class="welcome-banner compact" id="welcomeBanner" style="display:none">
                     <div class="welcome-copy">
                         <div class="welcome-icon" id="welcomeBannerIcon">☀️</div>
                         <div class="welcome-text">
@@ -1304,6 +1390,7 @@
         var userDirectory = {};
         var editingUsername = '';
         var customerRefreshTimer = null;
+        var autoLogoutTimer = null;
 
         function normalizeRole(role) {
             return role === 'admin' ? 'admin' : 'user';
@@ -1331,12 +1418,20 @@
         function buildGreetingPayload() {
             var hour = new Date().getHours();
             var firstName = (currentUser && currentUser.name ? String(currentUser.name).trim().split(/\s+/)[0] : 'Team');
+            var wisdom = [
+                'Saubere Prozesse sparen jeden Tag Zeit, Nerven und Rückfragen.',
+                'Konsequenz in kleinen Schritten erzeugt am Ende echte Professionalität.',
+                'Wer sauber dokumentiert, führt Kunden souverän und ohne Reibung.',
+                'Klarheit in der Akte ist Klarheit im Alltag.'
+            ];
+            var quote = wisdom[new Date().getDate() % wisdom.length];
             if (hour < 11) {
                 return {
                     icon: '☀️',
                     title: 'Guten Morgen, ' + firstName,
                     text: 'Dein Dashboard ist bereit. Starte mit klarer Sicht in den Arbeitstag.',
-                    chip: 'Fokus: Prioritäten zuerst'
+                    chip: 'Fokus: Prioritäten zuerst',
+                    quote: quote
                 };
             }
             if (hour < 17) {
@@ -1344,14 +1439,16 @@
                     icon: '🚀',
                     title: 'Guten Tag, ' + firstName,
                     text: 'Alles Wichtige liegt vor dir. Heute zählt saubere Abarbeitung.',
-                    chip: 'Fokus: Kunden sauber führen'
+                    chip: 'Fokus: Kunden sauber führen',
+                    quote: quote
                 };
             }
             return {
                 icon: '🌙',
                 title: 'Guten Abend, ' + firstName,
                 text: 'Halte die letzten Punkte sauber fest und bring den Tag kontrolliert zu Ende.',
-                chip: 'Fokus: Übergaben sauber halten'
+                chip: 'Fokus: Übergaben sauber halten',
+                quote: quote
             };
         }
 
@@ -1368,18 +1465,51 @@
             if (text) text.textContent = payload.text;
             if (chip) chip.textContent = payload.chip;
             banner.style.display = 'flex';
+        }
 
-            var todayKey = new Date().toISOString().slice(0, 10);
-            var welcomeKey = 'fixitWelcomeSeen:' + (currentUser.username || 'guest') + ':' + todayKey;
-            if (!sessionStorage.getItem(welcomeKey)) {
-                showToast(payload.title + ' - ' + payload.text, 'success');
-                sessionStorage.setItem(welcomeKey, '1');
-            }
+        function showWelcomeModal() {
+            var modal = document.getElementById('welcomeModal');
+            if (!modal || !currentUser) return;
+            var payload = buildGreetingPayload();
+            var icon = document.getElementById('welcomeModalIcon');
+            var title = document.getElementById('welcomeModalTitle');
+            var subtitle = document.getElementById('welcomeModalSubtitle');
+            var quote = document.getElementById('welcomeModalQuote');
+            if (icon) icon.textContent = payload.icon;
+            if (title) title.textContent = payload.title;
+            if (subtitle) subtitle.textContent = payload.text;
+            if (quote) quote.textContent = payload.quote;
+            modal.classList.add('active');
+        }
+
+        function dismissWelcomeModal() {
+            var modal = document.getElementById('welcomeModal');
+            if (modal) modal.classList.remove('active');
+            renderWelcomeBanner();
+        }
+
+        function formatLastChangeText(customer) {
+            if (!customer || !customer.lastChangedBy) return '';
+            var parts = [customer.lastChangedBy];
+            if (customer.lastChangedAt) parts.push(formatDateTime(customer.lastChangedAt));
+            if (customer.lastChangedArea) parts.push(customer.lastChangedArea);
+            return parts.join(' · ');
+        }
+
+        function formatDateTime(value) {
+            if (!value) return '';
+            var dt = new Date(value);
+            if (isNaN(dt.getTime())) return String(value);
+            return dt.toLocaleDateString('de-DE') + ' ' + dt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
         }
 
         // === API ===
         function logoutToLogin() {
             stopCustomerAutoRefresh();
+            if (autoLogoutTimer) {
+                clearTimeout(autoLogoutTimer);
+                autoLogoutTimer = null;
+            }
             AUTH_TOKEN = null;
             sessionStorage.clear();
             currentUser = null;
@@ -1387,6 +1517,8 @@
             var loginScreen = document.getElementById('loginScreen');
             if (dashboard) dashboard.classList.remove('active');
             if (loginScreen) loginScreen.classList.remove('hidden');
+            var welcomeModal = document.getElementById('welcomeModal');
+            if (welcomeModal) welcomeModal.classList.remove('active');
         }
 
         function fetchWithTimeout(url, opts, timeoutMs) {
@@ -1568,7 +1700,6 @@
                     '<div class="customer-card-header">' +
                     '<div class="customer-name">' + escHtml(c.name || 'Unbekannt') + '</div>' +
                     '<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">' +
-                    (isUpdated ? '<span class="update-pill">Neu</span>' : '') +
                     '<span class="status-badge ' + c.status + '">' + getStatusText(c.status) + '</span>' +
                     '</div>' +
                     '</div>' +
@@ -1576,9 +1707,9 @@
                     '<div class="info-row">📅 ' + escHtml(formatDate(c.goLive) || '–') + '</div>' +
                     '<div class="info-row">👤 ' + escHtml(c.contact || 'Kein Ansprechpartner') + '</div>' +
                     '<div class="info-row">📞 ' + escHtml(c.phone || 'Keine Telefonnummer') + '</div>' +
-                    (c.lastEditedBy ? '<div class="info-row" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem">' +
-                    '<span style="width:20px;height:20px;border-radius:50%;background:var(--primary);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0">' + escHtml((c.lastEditedBy||'?').charAt(0).toUpperCase()) + '</span>' +
-                    '<span>' + escHtml(c.lastEditedBy) + ' · ' + escHtml(c.lastEditedAt||'') + (c.lastEditedTab ? ' · ' + escHtml(c.lastEditedTab) : '') + '</span></div>' : '') +
+                    (c.lastChangedBy ? '<div class="info-row" style="margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid var(--border);font-size:0.78rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem">' +
+                    '<span style="width:20px;height:20px;border-radius:50%;background:var(--primary);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;flex-shrink:0">' + escHtml((c.lastChangedBy||'?').charAt(0).toUpperCase()) + '</span>' +
+                    '<span>' + escHtml(formatLastChangeText(c)) + '</span></div>' : '') +
                     '</div></div>';
             }).join('');
         }
@@ -1668,11 +1799,11 @@
                     '</div>' +
                     field('Email', 'email', c.email, 'email') +
                     '</div>';
-                if (c.lastEditedBy) {
+                if (c.lastChangedBy) {
                     html += '<div style="margin-top:1rem;padding:0.75rem;background:var(--surface-light);border-radius:8px;font-size:0.82rem;color:var(--text-muted);display:flex;align-items:center;gap:0.5rem">' +
-                    '<span style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">' + escHtml((c.lastEditedBy||'?').charAt(0).toUpperCase()) + '</span>' +
-                    '<div><div style="font-weight:600;color:var(--text)">' + escHtml(c.lastEditedBy) + '</div>' +
-                    '<div>' + escHtml(c.lastEditedAt||'') + (c.lastEditedTab ? ' · ' + escHtml(c.lastEditedTab) : '') + '</div></div></div>';
+                    '<span style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:white;display:inline-flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">' + escHtml((c.lastChangedBy||'?').charAt(0).toUpperCase()) + '</span>' +
+                    '<div><div style="font-weight:600;color:var(--text)">Letzte Änderung: ' + escHtml(c.lastChangedBy) + '</div>' +
+                    '<div>' + escHtml(formatDateTime(c.lastChangedAt)) + (c.lastChangedArea ? ' · ' + escHtml(c.lastChangedArea) : '') + '</div></div></div>';
                 }
             } else if (activePanelTab === 'details') {
                 html = '<div class="panel-section"><div class="panel-section-title">Verwaltung</div>' +
@@ -1755,11 +1886,9 @@
             if (peHinweise) c.deck.hinweise = peHinweise.value;
             if (peNotes) c.notes = peNotes.value;
 
-            c.lastEditedBy = currentUser.name;
-            c.lastEditedByUsername = currentUser.username;
-            c.lastEditedAt = new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'});
-            // Track what tab was changed
-            c.lastEditedTab = activePanelTab === 'info' ? 'Stammdaten' : activePanelTab === 'details' ? 'Verwaltung' : 'Notizen';
+            c.lastChangedBy = currentUser.name;
+            c.lastChangedAt = new Date().toISOString();
+            c.lastChangedArea = activePanelTab === 'info' ? 'Stammdaten' : activePanelTab === 'details' ? 'Verwaltung' : 'Notizen';
 
             apiCall('PUT', '/api/customers/' + c.id, c).then(function(saved) {
                 if (saved && saved.id) {
@@ -1866,10 +1995,9 @@
                     wording: '',
                     updated: new Date().toLocaleDateString('de-DE')
                 },
-                lastEditedBy: currentUser.name,
-                lastEditedByUsername: currentUser.username,
-                lastEditedAt: new Date().toLocaleDateString('de-DE') + ' ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}),
-                lastEditedTab: 'Erstellt'
+                lastChangedBy: currentUser.name,
+                lastChangedAt: new Date().toISOString(),
+                lastChangedArea: 'Erstellt'
             };
 
             apiCall('POST', '/api/customers', nc).then(function(saved) {
@@ -1975,8 +2103,9 @@
                                 notfall: cNotfall!==-1?(row[cNotfall]||'').toString():'',
                                 wording:'', updated:new Date().toLocaleDateString('de-DE')
                             },
-                            lastEditedBy: currentUser.name,
-                            lastEditedAt: new Date().toLocaleDateString('de-DE')
+                            lastChangedBy: currentUser.name,
+                            lastChangedAt: new Date().toISOString(),
+                            lastChangedArea: 'Import'
                         });
                     });
 
@@ -2353,6 +2482,17 @@
             }
         }
 
+        function scheduleAutoLogout() {
+            if (autoLogoutTimer) {
+                clearTimeout(autoLogoutTimer);
+                autoLogoutTimer = null;
+            }
+            autoLogoutTimer = setTimeout(function() {
+                showToast('Sitzung nach 12 Stunden beendet', 'info');
+                handleLogout();
+            }, 12 * 60 * 60 * 1000);
+        }
+
         function showDashboard() {
             currentUser.role = normalizeRole(currentUser.role);
             document.getElementById('loginScreen').classList.add('hidden');
@@ -2363,6 +2503,11 @@
             var avatarEl = document.getElementById('userAvatar');
             if (avatarEl) avatarEl.textContent = currentUser.name.charAt(0).toUpperCase();
             renderWelcomeBanner();
+            scheduleAutoLogout();
+            if (sessionStorage.getItem('fixitShowWelcomeModal') === '1') {
+                sessionStorage.removeItem('fixitShowWelcomeModal');
+                showWelcomeModal();
+            }
 
             // Role-based button visibility
             applyRoleVisibility();
@@ -2404,6 +2549,7 @@
                     currentUser = result.user;
                     sessionStorage.setItem('fixitToken', AUTH_TOKEN);
                     sessionStorage.setItem('fixitUser', JSON.stringify(currentUser));
+                    sessionStorage.setItem('fixitShowWelcomeModal', '1');
                     showDashboard();
                 } else {
                     showToast(result.message || 'Login fehlgeschlagen', 'error');
@@ -2423,12 +2569,19 @@
         });
 
         function logout() {
+            stopCustomerAutoRefresh();
+            if (autoLogoutTimer) {
+                clearTimeout(autoLogoutTimer);
+                autoLogoutTimer = null;
+            }
             AUTH_TOKEN = null;
             currentUser = null;
             customers = [];
             sessionStorage.clear();
             document.getElementById('dashboard').classList.remove('active');
             document.getElementById('loginScreen').classList.remove('hidden');
+            var welcomeModal = document.getElementById('welcomeModal');
+            if (welcomeModal) welcomeModal.classList.remove('active');
             closeDetailPanel();
         }
 
