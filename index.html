@@ -1391,6 +1391,111 @@
         var editingUsername = '';
         var customerRefreshTimer = null;
         var autoLogoutTimer = null;
+        var GREETING_QUOTES = [
+            'Saubere Prozesse sparen jeden Tag Zeit, Nerven und Rueckfragen.',
+            'Konsequenz in kleinen Schritten erzeugt am Ende echte Professionalitaet.',
+            'Wer sauber dokumentiert, fuehrt Kunden souveraen und ohne Reibung.',
+            'Klarheit in der Akte ist Klarheit im Alltag.',
+            'Heute lieber einmal sauber als dreimal hektisch.',
+            'Struktur ist die freundlichste Form von Tempo.',
+            'Ein guter Arbeitstag beginnt mit klaren Prioritaeten.',
+            'Ordnung im System ist Ruhe im Kopf.',
+            'Jede gute Notiz ist ein gesparter Rueckruf.',
+            'Professionalitaet ist oft einfach gut gepflegte Routine.',
+            'Keep it clean, keep it moving.',
+            'Small clean steps beat dramatic chaos.',
+            'Good operations look calm from the outside.',
+            'Sharp notes create smooth handovers.',
+            'Clarity is faster than hustle.',
+            'Do the simple things exceptionally well.',
+            'A tidy dashboard is a quiet superpower.',
+            'Discipline turns busy into effective.',
+            'Professional work leaves fewer mysteries behind.',
+            'Calm systems create confident teams.',
+            'Dzisiaj najpierw porzadek, potem predkosc.',
+            'Dobra organizacja oszczedza czas dwa razy.',
+            'Jasna karta klienta to spokojniejszy dzien.',
+            'Maly porzadek rano, duzy spokoj po poludniu.',
+            'Profesjonalizm zaczyna sie od szczegolow.',
+            'Najpierw klarownosc, potem tempo.',
+            'Dobre notatki to mniej telefonow.',
+            'System lubi konsekwencje.',
+            'Spokojna praca to tez szybka praca.',
+            'Czysty proces daje mocny efekt.',
+            'Heute gewinnt nicht Lautstaerke, sondern Sauberkeit.',
+            'Jeder Klick mit Sinn spart spaeter Diskussionen.',
+            'Wer sauber vorbereitet, arbeitet spaeter leichter.',
+            'Tempo ohne Ordnung ist nur Bewegung.',
+            'Der beste Stressabbau ist ein gepflegter Vorgang.',
+            'Ein klares System ist besser als ein gutes Gedaechtnis.',
+            'Saubere Uebergaben sind echte Teamleistung.',
+            'Gute Arbeit hinterlaesst keine Fragezeichen.',
+            'Wenn es klar ist, geht es schneller.',
+            'Ein ruhiger Start ist oft der schnellste Start.',
+            'Progress loves structure.',
+            'Clean data, clear head, better day.',
+            'A reliable note is a silent teammate.',
+            'Make it obvious, then make it fast.',
+            'Good service starts where confusion ends.',
+            'Consistency is a premium feature.',
+            'Precision is not slow. Rework is slow.',
+            'Strong teams document like pros.',
+            'Today is a good day for fewer loose ends.',
+            'Polish the process and the process will carry you.',
+            'Dobrze opisany klient to pol sukcesu.',
+            'Lepsza jedna dobra decyzja niz piec szybkich poprawek.',
+            'Najwieksza elegancja pracy to brak chaosu.',
+            'Porzadek w danych to mniej gaszenia pozarow.',
+            'Dzisiaj robimy rzeczy prosto i porzadnie.',
+            'Kazdy szczegol zapisany dzis pomaga jutro.',
+            'Mocny dzien zaczyna sie od dobrego przegladu.',
+            'Nie szybko byle jak, tylko sprawnie i dobrze.',
+            'Dobry system oddaje czas zespolowi.',
+            'Klarownosc robi roznice.',
+            'Kaffee hilft. Saubere Prozesse noch mehr.',
+            'Wenn alles brennt, hilft zuerst Struktur.',
+            'Heute bitte keine Kunstwerke, nur klare Ergebnisse.',
+            'Ein Ticket ist kein Tagebuch, aber fast.',
+            'Mehr Ordnung, weniger Detektivarbeit.',
+            'Das System weiss nur, was du ihm sauber sagst.',
+            'Schneller als Chaos ist nur Vorbereitung.',
+            'Wer notiert, gewinnt.',
+            'Manche Helden tragen keinen Umhang, sondern pflegen Stammdaten.',
+            'Heute keine wilden Westen, heute operative Exzellenz.',
+            'No drama, just delivery.',
+            'Less guessing, more knowing.',
+            'If it is written well, it scales well.',
+            'Your future self loves clean records.',
+            'A calm dashboard is a competitive advantage.',
+            'Operational excellence is mostly repetition done right.',
+            'Good mornings start with fewer surprises.',
+            'Make the next step obvious.',
+            'Clean work is kind work.',
+            'Do not chase speed. Remove friction.',
+            'Dzisiaj bez chaosu, prosze i dziekuje.',
+            'Nawet najlepszy zespol lubi porzadek.',
+            'Dobrze ulozony dzien brzmi ciszej.',
+            'Gdy dane sa jasne, decyzje sa lzejsze.',
+            'Najpierw ustal, potem dzialaj.',
+            'Porzadek to nie nuda, to przewaga.',
+            'System odwdziecza sie za dyscypline.',
+            'Dobra robota zostawia po sobie spokoj.',
+            'Mniej improwizacji, wiecej kontroli.',
+            'Profesjonalizm widac w malych rzeczach.',
+            'Heute wird nicht geschoben, heute wird sauber abgeschlossen.',
+            'Ein guter Tag hat klare Notizen und wenig offene Schleifen.',
+            'Das Ziel ist nicht Beschaeftigung, sondern Wirkung.',
+            'Saubere Daten fuehlen sich spaeter wie Magie an.',
+            'Wer den Kontext pflegt, fuehrt besser.',
+            'Nicht alles auf einmal. Aber alles mit System.',
+            'Qualitaet ist oft nur konsequente Wiederholung.',
+            'Ordnung ist delegierbare Intelligenz.',
+            'Ein klarer Anfang spart einen hektischen Nachmittag.',
+            'Heute freundlich, praezise und ohne Datenchaos.',
+            'One clean save beats ten vague promises.',
+            'Sharp teams leave sharp records.',
+            'Work kindly. Document clearly. Finish strongly.'
+        ];
 
         function normalizeRole(role) {
             return role === 'admin' ? 'admin' : 'user';
@@ -1418,13 +1523,7 @@
         function buildGreetingPayload() {
             var hour = new Date().getHours();
             var firstName = (currentUser && currentUser.name ? String(currentUser.name).trim().split(/\s+/)[0] : 'Team');
-            var wisdom = [
-                'Saubere Prozesse sparen jeden Tag Zeit, Nerven und Rückfragen.',
-                'Konsequenz in kleinen Schritten erzeugt am Ende echte Professionalität.',
-                'Wer sauber dokumentiert, führt Kunden souverän und ohne Reibung.',
-                'Klarheit in der Akte ist Klarheit im Alltag.'
-            ];
-            var quote = wisdom[new Date().getDate() % wisdom.length];
+            var quote = getRotatingGreetingQuote();
             if (hour < 11) {
                 return {
                     icon: '☀️',
@@ -1450,6 +1549,20 @@
                 chip: 'Fokus: Übergaben sauber halten',
                 quote: quote
             };
+        }
+
+        function getRotatingGreetingQuote() {
+            if (!GREETING_QUOTES.length) return '';
+            var stored = sessionStorage.getItem('fixitGreetingQuoteIndex');
+            var idx = stored == null ? -1 : Number(stored);
+            if (!isFinite(idx) || idx < 0 || idx >= GREETING_QUOTES.length) {
+                var seedBase = (currentUser && currentUser.username ? currentUser.username : 'guest') + ':' + Date.now();
+                var seed = 0;
+                for (var i = 0; i < seedBase.length; i++) seed += seedBase.charCodeAt(i) * (i + 1);
+                idx = Math.abs(seed) % GREETING_QUOTES.length;
+                sessionStorage.setItem('fixitGreetingQuoteIndex', String(idx));
+            }
+            return GREETING_QUOTES[idx];
         }
 
         function renderWelcomeBanner() {
