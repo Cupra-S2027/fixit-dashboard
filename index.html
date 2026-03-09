@@ -1878,7 +1878,6 @@
                 updateStats();
                 closeNewCustomerModal();
                 showToast(name + ' angelegt!', 'success');
-                setTimeout(function() { openDetailPanel(saved.id); }, 300);
             }).catch(function(err) {
                 showToast('Fehler beim Anlegen: ' + err.message, 'error');
             });

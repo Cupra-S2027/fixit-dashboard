@@ -258,6 +258,12 @@ function annotateCustomerReadState(customer, username, reads) {
   return out;
 }
 
+function markCustomerAsUnread(customer) {
+  var out = Object.assign({}, customer || {});
+  out.hasUnreadUpdate = !!sanitizeString(out.changeVersion || '', 64);
+  return out;
+}
+
 function normalizeDashboardStatus(raw) {
   var s = (raw || '').toString().toLowerCase().trim();
   if (s === 'coming_soon' || s === 'pending') return 'pending';
@@ -611,7 +617,7 @@ export default {
       customers.push(nc);
       await env.KV.put('customers', JSON.stringify(customers));
       await appendAuditLog(env.KV, username, 'customer.create', String(nc.id), { name: nc.name, scopeType: scope.scopeType });
-      return json(request, sanitizeCustomerForRead(nc, role));
+      return json(request, sanitizeCustomerForRead(markCustomerAsUnread(nc), role));
     }
 
     if (parts[1] === 'customers' && parts[2] && !parts[3] && request.method === 'PUT') {
@@ -633,7 +639,7 @@ export default {
       await env.KV.put('customers', JSON.stringify(customers));
       await appendAuditLog(env.KV, username, 'customer.update', String(id), { name: customers[idx].name, scopeType: scope.scopeType });
       await pushCustomerUpdateToFixit(env, customers[idx]);
-      return json(request, sanitizeCustomerForRead(customers[idx], role));
+      return json(request, sanitizeCustomerForRead(markCustomerAsUnread(customers[idx]), role));
     }
 
     if (parts[1] === 'customers' && parts[2] && parts[3] === 'ack' && request.method === 'POST') {
